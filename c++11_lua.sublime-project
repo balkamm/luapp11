@@ -1,0 +1,20 @@
+{
+	"folders":
+	[
+		{
+			"path": "/home/matthew/src/c++11_lua"
+		}
+	],
+	"settings":
+	{
+		    "sublimeclang_additional_language_options":
+			{
+			    "c++" : ["-std=c++11"]
+			},
+		   "sublimeclang_options":
+		    [
+		        "-I/usr/include/luajit-2.0/",
+		        "-I${folder:${project_path:Makefile}}"
+		    ]
+	}
+}

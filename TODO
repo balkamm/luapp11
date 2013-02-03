@@ -1,0 +1,10 @@
+-Variable
+-Threading model
+-Buffer/String
+-Exceptions
+-Value
+--Full User Value
+-Enums
+-Files
+-Handle different versions of lua...
+-special luajit support?
