@@ -69,20 +69,84 @@ public:
 	
 };
 
-class Table;
+template<typename T> 
+class wrap {
+public:
+	wrap() = default;
+	wrap(const wrap&) = default;
+	wrap(wrap&& other) {
+		swap(other);
+	}
+
+	wrap(const T& data)
+		: data(data)
+	{}
+
+	~wrap() {
+		delete data;
+	}
+
+	void swap(wrap & other) {
+		std::swap(data, other.data);
+	}
+
+	wrap & operator=(wrap other) {
+		swap(other);
+	}
+	wrap & operator=(T other) {
+		data = T(other);
+	}
+
+	T & get() {
+		return *data;
+	}
+	const T & get() const {
+		return *data;
+	}
+	T * get_pointer() {
+		return data;
+	}
+	const T * get_pointer() const {
+		return data;
+	}
+private:
+	T* data;
+};
 
 class Value {
 public:
-	Value() : type_{Type::Nil} { val_.ptr = nullptr; }
-	Value(lua_Number n) : type_{Type::Number} { val_.n = n;  }
-	Value(bool b) : type_{Type::Boolean} { val_.b = b; }
-	Value(const std::string& s) : type_{Type::String} { val_.s = s.c_str(); }
-	Value(const char* s) : type_{Type::String} { val_.s = s; }
-	Value(Table t) : type_{Type::Table} { val_.t = t; }
-	Value(lua_CFunction f) : type_{Type::Function} { val_.func = f; }
-	Value(lua_State* s) : type_{Type::Thread} { val_.thread = s; }
-	Value(void* lud) : type_{Type::Lightuserdata} { val_.ptr = lud; }
+	Value() : type_{Type::Nil}, ptr{nullptr} {}
+	Value(lua_Number n) : type_{Type::Number}, num{n} {}
+	Value(bool b) : type_{Type::Boolean}, boolean{b} {}
+	Value(const std::string& s) : type_{Type::String}, str{s.c_str()} {}
+	Value(const char* s) : type_{Type::String}, str{s} {}
+	Value(std::initializer_list<std::pair<Value, Value>> t);
+	Value(lua_CFunction f) : type_{Type::Function}, func{f} {}
+	Value(lua_State* s) : type_{Type::Thread}, thread{s} {}
+	Value(void* lud) : type_{Type::Lightuserdata}, ptr{lud} {}
 	
+	~Value() {
+		if(type_ == Type::Table) {
+			table.reset();
+		}		
+	}
+
+	Value(const Value& other)
+		: type_{other.type_}
+	{
+		switch (type_) {
+			case Type::Nil:
+			case Type::Lightuserdata:
+				ptr = other.ptr;
+				break;
+			case Type::Number: num = other.num; break;
+			case Type::Boolean: boolean = other.boolean; break;
+			case Type::String: str = other.str; break;
+			case Type::Table: table = other.table; break;
+			case Type::Function: func = other.func; break;
+			case Type::Thread: thread = other.thread; break;
+		}
+	}
 	// template<typename T>
 	// Value(UserData<T>&& data) 
 	// 	: type_{Type::Userdata}
@@ -116,21 +180,21 @@ private:
 	virtual void push(State* s) const {
 		switch(type_) {
 			case Type::Nil: s->pushnil(); break;
-			case Type::Number: s->pushnumber(val_.n); break;
-			case Type::Boolean: s->pushboolean(val_.b); break;
-			case Type::String: s->pushstring(val_.s); break;
+			case Type::Number: s->pushnumber(num); break;
+			case Type::Boolean: s->pushboolean(boolean); break;
+			case Type::String: s->pushstring(str); break;
 			case Type::Table: {
 
 				break;
 			}
-			case Type::Function: s->pushcfunction(val_.func); break;
+			case Type::Function: s->pushcfunction(func); break;
 			// case Type::Userdata: {
-			// 	auto data = s->newuserdata(val_.userData.Size);
-			// 	std::copy(val_.userData.Data, val_.userData.Data[val_.userData.Size], data);
+			// 	auto data = s->newuserdata(userData.Size);
+			// 	std::copy(userData.Data, userData.Data[userData.Size], data);
 			// 	break;
 			// }
-			case Type::Thread: lua_pushthread(val_.thread); break;
-			case Type::Lightuserdata: s->pushlightuserdata(val_.ptr); break;
+			case Type::Thread: lua_pushthread(thread); break;
+			case Type::Lightuserdata: s->pushlightuserdata(ptr); break;
 		}
 	}
 
@@ -139,24 +203,25 @@ private:
 		void * Data;
 	};
 
-	Type type_;
-	union {
-		void* ptr;
-		bool  b;
-		lua_Number n;
-		const char * s;
-		Table t;
-		lua_CFunction func;
-		lua_State* thread;
-		// UD userData;
-	} val_;
-
 	class valueHasher {
 		size_t operator()(const Value& v) const {
 			std::hash<lua_Number> hasher;
-			return hasher(v.val_.n);
+			return hasher(v.num);
 		}
 	};
+
+	Type type_;
+	union {
+		void* ptr;
+		bool  boolean;
+		lua_Number num;
+		const char * str;
+		std::shared_ptr<std::unordered_map<Value, Value, valueHasher>> table;
+		lua_CFunction func;
+		lua_State* thread;
+		// UD userData;
+	};
+
 	friend class Variable;
 	friend class Table;
 };
@@ -164,25 +229,25 @@ private:
 const Value Value::Nil = Value();
 
 
-class Table {
-public:
-	Table() = default;
+// class Table {
+// public:
+// 	Table() = default;
 	
-	Table(std::initializer_list<std::pair<Value, Value>> pairs) {
-		for(auto& p: pairs) {
-			(*map_)[p.first] = p.second;
-		}
-	}
+// 	Table(std::initializer_list<std::pair<Value, Value>> pairs) {
+// 		for(auto& p: pairs) {
+// 			(*map_)[p.first] = p.second;
+// 		}
+// 	}
 
-	Table(Table& t) : map_(t.map_) {}
+// 	Table(Table& t) : map_(t.map_) {}
 
-	Value& operator[](Value key) {
-		return (*map_)[key];
-	}
+// 	Value& operator[](Value key) {
+// 		return (*map_)[key];
+// 	}
 
-private:
-	std::unordered_map<Value, Value, Value::valueHasher> map_;
-};
+// private:
+// 	std::unordered_map<Value, Value, Value::valueHasher> map_;
+// };
 
 class Variable {
 public:
