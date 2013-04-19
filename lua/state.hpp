@@ -15,7 +15,7 @@ private:
 	lua_State* state_;
 	friend class Variable;
 	friend class StackGuard;
-	template<typename T> friend class Value;
+	friend class Value;
 
 public:
 	inline State() {
@@ -1325,13 +1325,18 @@ public:
 struct StackGuard {
 	State* state_;
 	int initTop_;
-	StackGuard(State* state)
+	bool ret_;
+	StackGuard(State* state, bool ret = false)
 		: state_ {state}
-		, initTop_{ state->gettop() }
+		, initTop_{state->gettop()}
+		, ret_{ret}
 	{}
 
 	~StackGuard()
 	{
+		if(ret_) {
+
+		}
 		auto toPop = state_->gettop() - initTop_;
 		if(toPop > 0) {
 			state_->pop(toPop);
