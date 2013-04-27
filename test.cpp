@@ -1,5 +1,7 @@
 #include "lua/lua.hpp"
 
+#include <iostream>
+
 int main(int argc, char const *argv[])
 {
 	lua::root["my_scope"] = {
@@ -9,6 +11,8 @@ int main(int argc, char const *argv[])
 		}},
 		{"my_data", 0.9234}
 	};
+
+	std::cout << lua::root["my_scope"]["my_data"].get<double>() << std::endl;
 
 	return 0;
 }
