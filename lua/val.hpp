@@ -10,6 +10,36 @@
 namespace lua
 {
 
+void stackdump_g(lua_State* l)
+{
+    int i;
+    int top = lua_gettop(l);
+ 
+    printf("total in stack %d\n",top);
+ 
+    for (i = 1; i <= top; i++)
+    {  /* repeat for each level */
+        int t = lua_type(l, i);
+        switch (t) {
+            case LUA_TSTRING:  /* strings */
+                printf("string: '%s'\n", lua_tostring(l, i));
+                break;
+            case LUA_TBOOLEAN:  /* booleans */
+                printf("boolean %s\n",lua_toboolean(l, i) ? "true" : "false");
+                break;
+            case LUA_TNUMBER:  /* numbers */
+                printf("number: %g\n", lua_tonumber(l, i));
+                break;
+            default:  /* other values */
+                printf("%s\n", lua_typename(l, t));
+                break;
+        }
+        printf("  ");  /* put a separator */
+    }
+    printf("\n");  /* end the listing */
+}
+
+
 class val {
 public:
 	val() : type_{type::nil}, ptr{nullptr} {}
@@ -106,7 +136,12 @@ private:
 			case type::boolean: lua_pushboolean(s, boolean); break;
 			case type::string: lua_pushstring(s, str); break;
 			case type::table: {
-
+				lua_newtable(s);
+				for(auto p: *table) {
+					p.first.push(s);
+					p.second.push(s);
+					lua_settable(s, -3);
+				}
 				break;
 			}
 			case type::function: lua_pushcfunction(s, func); break;
@@ -118,6 +153,7 @@ private:
 			case type::thread: lua_pushthread(thread); break;
 			case type::lightuserdata: lua_pushlightuserdata(s, ptr); break;
 		}
+		stackdump_g(s);
 	}
 
 	struct UD {
@@ -138,11 +174,11 @@ private:
 		bool  boolean;
 		lua_Number num;
 		const char * str;
-		std::shared_ptr<std::unordered_map<val, val, valueHasher>> table;
 		lua_CFunction func;
 		lua_State* thread;
 		// UD userData;
 	};
+	std::shared_ptr<std::unordered_map<val, val, valueHasher>> table;
 
 	type type_;
 	friend class var;

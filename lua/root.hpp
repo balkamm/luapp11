@@ -7,12 +7,19 @@ class root {
 public:
 	root()
 		: L{luaL_newstate()}
-	{}
+	{
+		lua_atpanic(L, &panic);
+	}
 
 	var operator[](val key) const {
 		return var(L, LUA_GLOBALSINDEX, key);
 	}
 private:
+	static int panic(lua_State* L) {
+		stackdump_g(L);
+		throw "Lua fail!";
+	}
+
 	lua_State* L;
 };
 
