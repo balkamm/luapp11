@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 #include <unordered_map>
+#include <cstring>
 
 namespace lua
 {
@@ -16,10 +17,13 @@ public:
 	val(bool b) : type_{type::boolean}, boolean{b} {}
 	val(const std::string& s) : type_{type::string}, str{s.c_str()} {}
 	val(const char* s) : type_{type::string}, str{s} {}
-	val(std::initializer_list<std::pair<val, val>> t);
 	val(lua_CFunction f) : type_{type::function}, func{f} {}
 	val(lua_State* s) : type_{type::thread}, thread{s} {}
 	val(void* lud) : type_{type::lightuserdata}, ptr{lud} {}
+	val(std::initializer_list<std::pair<val, val>> t) 
+		: type_{type::table}
+		, table(new std::unordered_map<val, val, valueHasher>(t.begin(), t.end()))
+	{}
 	
 	~val() {
 		if(type_ == type::table) {
@@ -70,7 +74,29 @@ public:
 
 	}
 
-	 static const val nil;
+	friend bool operator ==(const val& a, const val& b) {
+		if(a.type_ != b.type_) {
+			return false;
+		}
+		switch(a.type_) {
+			case type::number:
+				return a.num == b.num;
+			case type::boolean:
+				return a.boolean == b.boolean;
+			case type::string:
+				return strcmp(a.str, b.str);
+			
+			case type::nil:
+			case type::table:
+			case type::function:
+			case type::thread:
+			case type::lightuserdata:
+				return a.ptr == b.ptr;
+		}
+		return false;
+	}
+
+	static const val nil;
 private:
 	// Puts on the top of the stack -0, +1, -
 	virtual void push(lua_State* s) const {
@@ -100,13 +126,13 @@ private:
 	};
 
 	class valueHasher {
+	public:
 		size_t operator()(const val& v) const {
 			std::hash<lua_Number> hasher;
 			return hasher(v.num);
 		}
 	};
 
-	type type_;
 	union {
 		void* ptr;
 		bool  boolean;
@@ -118,6 +144,7 @@ private:
 		// UD userData;
 	};
 
+	type type_;
 	friend class var;
 };
 

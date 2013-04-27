@@ -2,7 +2,7 @@
 
 int main(int argc, char const *argv[])
 {
-	lua::env["my_scope"] = {
+	lua::root["my_scope"] = {
 		{"my_string", "some text"},
 		{"my_table", {
 			{"nested_thing", "woohoo!"}
