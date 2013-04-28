@@ -12,7 +12,8 @@ int main(int argc, char const *argv[])
 		{"my_data", 0.9234}
 	};
 
-	std::cout << lua::root["my_scope"]["my_data"].get<double>() << std::endl;
+	std::cout << lua::root["my_scope"]["my_data"].as<std::string>("Whoops!") << std::endl;
+	std::cout << lua::root["my_scope"]["my_string"].as<std::string>("Whoops!") << std::endl;
 
 	return 0;
 }

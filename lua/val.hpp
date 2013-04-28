@@ -6,6 +6,7 @@
 #include <utility>
 #include <unordered_map>
 #include <cstring>
+#include <sstream>
 
 namespace lua
 {
@@ -110,7 +111,7 @@ public:
 			case type::lightuserdata: return get_lightuserdata<T>::get(*this);
 			case type::thread:
 			default:
-				throw "Invalid Type Error";
+				throw lua::exception("Invalid Type Error");
 		}
 	}
 
@@ -187,96 +188,98 @@ private:
 
 	template<typename T, class Enable = void>
 	struct get_number {
-		static T get(const val& v) {
-			throw "Invalid Type Error";
+		static inline T get(const val& v) {
+			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_number<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return v.num;
+		}
+	};
+
+	template<typename T>
+	struct get_number<T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+		static inline T get(const val& v) {
+			std::stringstream ss;
+			ss << v.num;
+			return ss.str();
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_boolean {
-		static T get(const val& v) {
-			throw "Invalid Type Error";
+		static inline T get(const val& v) {
+			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_boolean<T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return v.boolean;
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_string {
-		static T get(const val& v) {
-			throw "Invalid Type Error";
+		static inline T get(const val& v) {
+			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_string<T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-		static std::string get(const val& v) {
+		static inline std::string get(const val& v) {
 			return std::string(v.str);
-		}
-	};
-
-	template<typename T>
-	struct get_string<T, typename std::enable_if<std::is_same<T, const char*>::value>::type> {
-		static std::string get(const val& v) {
-			return v.str;
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_nil {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return (T)NULL;
 		}
 	};
 	template<typename T>
 	struct get_nil<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return nullptr;
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_table {
-		static T get(const val& v) {
-			throw "Invalid Type Error";
+		static inline T get(const val& v) {
+			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_function {
-		static T get(const val& v) {
-			throw "Invalid Type Error";
+		static inline T get(const val& v) {
+			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_function<T, typename std::enable_if<std::is_function<T>::value>::type> {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return dynamic_cast<T>(v.func);
 		}
 	};
 
 	template<typename T>
 	struct get_lightuserdata {
-		static T get(const val& v) {
+		static inline T get(const val& v) {
 			return *(T*)v.ptr;
 		}
 	};
 	template<typename T>
 	struct get_lightuserdata<T*> {
-		static T* get(const val& v) {
+		static inline T* get(const val& v) {
 			return (T*)v.ptr;
 		}
 	};

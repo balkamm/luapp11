@@ -5,10 +5,10 @@
 
 namespace lua
 {
-class Exception : std::exception
+class exception : std::exception
 {
 public:
-	Exception(std::string what)
+	exception(std::string what)
 		: what_(what)
 	{}
 

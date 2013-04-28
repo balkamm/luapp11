@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 namespace lua
 {
 
@@ -15,6 +17,20 @@ public:
 	template <typename T>
 	T get() const {
 		return get_value().get<T>();	
+	}
+
+	template <typename T>
+	bool is() const {
+		stack_guard g(L);
+		push();
+		return typed_is<T>::is(L);
+	}
+
+	template <typename T>
+	T as(T&& fallback) {
+		stack_guard g(L);
+		push();
+		return typed_is<T>::is(L) ? val(L).get<T>() : fallback;
 	}
 
 	// Assigns the var with another var
@@ -51,6 +67,57 @@ protected:
 		parent_key_();
 		lua_gettable(L, virtual_index_ ? virtual_index_ : -2);
 	}
+
+	template<typename T, class Enable = void>
+	struct typed_is {
+		static inline bool is(lua_State* L) {
+			return false;
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+		static inline bool is(lua_State* L) {
+			return !lua_isnoneornil(L,-1) && lua_isnumber(L,-1);
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+		static inline bool is(lua_State* L) {
+			std::cout << "Is it a string?" << !lua_isnoneornil(L,-1) << lua_isstring(L,-1) << std::endl;
+			return !lua_isnoneornil(L,-1) && lua_isstring(L,-1);
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_same<T, const char*>::value>::type> {
+		static inline bool is(lua_State* L) {
+			return !lua_isnoneornil(L,-1) && lua_isstring(L,-1);
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_same<T, bool>::value>::type> {
+		static inline bool is(lua_State* L) {
+			return !lua_isnoneornil(L,-1) && lua_isboolean(L,-1);
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_function<T>::value>::type> {
+		static inline bool is(lua_State* L) {
+			return !lua_isnoneornil(L,-1) && lua_isfunction(L,-1);
+		}
+	};
+
+	template<typename T>
+	struct typed_is<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
+		static inline bool is(lua_State* L) {
+			return !lua_isnoneornil(L,-1) && lua_islightuserdata(L,-1);
+		}
+	};
+
 
 	var(var var, val key) 
 		: L{var.L}
