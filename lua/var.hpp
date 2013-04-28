@@ -8,7 +8,7 @@ public:
 	// Gets the value of the var
 	val get_value() const {
 		push();
-		return val(); // TODO: Implement
+		return val(L);
 	}
 
 	// Gets the value of the var typed
@@ -48,7 +48,6 @@ public:
 	}
 protected:
 	void push() const {
-		stack_guard g(L);
 		parent_key_();
 		lua_gettable(L, virtual_index_ ? virtual_index_ : -2);
 	}

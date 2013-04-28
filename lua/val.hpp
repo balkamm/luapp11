@@ -48,7 +48,6 @@ public:
 	val(const std::string& s) : type_{type::string}, str{s.c_str()} {}
 	val(const char* s) : type_{type::string}, str{s} {}
 	val(lua_CFunction f) : type_{type::function}, func{f} {}
-	val(lua_State* s) : type_{type::thread}, thread{s} {}
 	val(void* lud) : type_{type::lightuserdata}, ptr{lud} {}
 	val(std::initializer_list<std::pair<val, val>> t) 
 		: type_{type::table}
@@ -99,6 +98,93 @@ public:
 		lightuserdata = LUA_TLIGHTUSERDATA,
 	};
 
+	template <typename T>
+	T get() {
+		switch(type_) {
+			case type::number: return get_number<T>::get(*this);
+			case type::boolean: return get_boolean<T>::get(*this);
+			case type::string: return get_string<T>::get(*this);
+			case type::nil: return get_nil<T>::get(*this);
+			case type::table: return get_table<T>::get(*this);
+			case type::function: return get_function<T>::get(*this);
+			case type::lightuserdata: return get_lightuserdata<T>::get(*this);
+			case type::thread:
+			default:
+				throw "Invalid Type Error";
+		}
+	}
+
+	friend bool operator ==(const val& a, const val& b) {
+		if(a.type_ != b.type_) {
+			return false;
+		}
+		switch(a.type_) {
+			case type::number:
+				return a.num == b.num;
+			case type::boolean:
+				return a.boolean == b.boolean;
+			case type::string:
+				return strcmp(a.str, b.str);
+			
+			case type::nil:
+			case type::table:
+			case type::function:
+			case type::thread:
+			case type::lightuserdata:
+				return a.ptr == b.ptr;
+		}
+		return false;
+	}
+
+	static const val nil;
+private:
+	val(lua_State* s, type t)
+		: type_(t)
+	{
+		switch(t) {
+			case type::number: num = lua_tonumber(s, -1); break;
+			case type::boolean: boolean = lua_toboolean(s, -1); break;
+			case type::string: str = lua_tostring(s, -1); break;
+			case type::nil: ptr = nullptr; break;
+			case type::table: throw "not totally sure what to do...";
+			case type::function: func = lua_tocfunction(s, -1); break;
+			case type::thread: thread = lua_tothread(s, -1); break;
+			case type::lightuserdata: ptr = const_cast<void*>(lua_topointer(s, -1)); break;
+		}
+	}
+
+	val(lua_State* s)
+		: val(s, (type)lua_type(s, -1))
+	{}
+
+	// Puts on the top of the stack -0, +1, -
+	virtual void push(lua_State* s) const {
+		switch(type_) {
+			case type::nil: lua_pushnil(s); break;
+			case type::number: lua_pushnumber(s, num); break;
+			case type::boolean: lua_pushboolean(s, boolean); break;
+			case type::string: lua_pushstring(s, str); break;
+			case type::table: {
+				lua_newtable(s);
+				for(auto p: *table) {
+					p.first.push(s);
+					p.second.push(s);
+					lua_settable(s, -3);
+				}
+				break;
+			}
+			case type::function: lua_pushcfunction(s, func); break;
+			// case type::Userdata: {
+			// 	auto data = lua_newuserdata(s, userData.Size);
+			// 	std::copy(userData.Data, userData.Data[userData.Size], data);
+			// 	break;
+			// }
+			case type::thread: lua_pushthread(thread); break;
+			case type::lightuserdata: lua_pushlightuserdata(s, ptr); break;
+		}
+		stackdump_g(s);
+	}
+
 	template<typename T, class Enable = void>
 	struct get_number {
 		static T get(const val& v) {
@@ -148,15 +234,15 @@ public:
 		}
 	};
 
-	template<typename T>
+	template<typename T, class Enable = void>
 	struct get_nil {
 		static T get(const val& v) {
-			return NULL;
+			return (T)NULL;
 		}
 	};
 	template<typename T>
-	struct get_nil<T*> {
-		static T* get(const val& v) {
+	struct get_nil<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
+		static T get(const val& v) {
 			return nullptr;
 		}
 	};
@@ -194,74 +280,6 @@ public:
 			return (T*)v.ptr;
 		}
 	};
-
-	template <typename T>
-	T get() {
-		switch(type_) {
-			case type::number: return get_number<T>::get(this);
-			case type::boolean: return get_boolean<T>::get(this);
-			case type::string: return get_string<T>::get(this);
-			case type::nil: return get_nil<T>::get(this);
-			case type::table: return get_table<T>::get(this);
-			case type::function: return get_function<T>::get(this);
-			case type::lightuserdata: return get_lightuserdata<T>::get(this);
-			case type::thread:
-			default:
-				throw "Invalid Type Error";
-		}
-	}
-
-	friend bool operator ==(const val& a, const val& b) {
-		if(a.type_ != b.type_) {
-			return false;
-		}
-		switch(a.type_) {
-			case type::number:
-				return a.num == b.num;
-			case type::boolean:
-				return a.boolean == b.boolean;
-			case type::string:
-				return strcmp(a.str, b.str);
-			
-			case type::nil:
-			case type::table:
-			case type::function:
-			case type::thread:
-			case type::lightuserdata:
-				return a.ptr == b.ptr;
-		}
-		return false;
-	}
-
-	static const val nil;
-private:
-	// Puts on the top of the stack -0, +1, -
-	virtual void push(lua_State* s) const {
-		switch(type_) {
-			case type::nil: lua_pushnil(s); break;
-			case type::number: lua_pushnumber(s, num); break;
-			case type::boolean: lua_pushboolean(s, boolean); break;
-			case type::string: lua_pushstring(s, str); break;
-			case type::table: {
-				lua_newtable(s);
-				for(auto p: *table) {
-					p.first.push(s);
-					p.second.push(s);
-					lua_settable(s, -3);
-				}
-				break;
-			}
-			case type::function: lua_pushcfunction(s, func); break;
-			// case type::Userdata: {
-			// 	auto data = lua_newuserdata(s, userData.Size);
-			// 	std::copy(userData.Data, userData.Data[userData.Size], data);
-			// 	break;
-			// }
-			case type::thread: lua_pushthread(thread); break;
-			case type::lightuserdata: lua_pushlightuserdata(s, ptr); break;
-		}
-		stackdump_g(s);
-	}
 
 	struct UD {
 		size_t Size;
