@@ -141,7 +141,6 @@ protected:
 	template<typename T>
 	struct typed_is<T, typename std::enable_if<std::is_function<T>::value>::type> {
 		static inline bool is(lua_State* L) {
-			std::cout << "func check!" << std::endl;
 			return !lua_isnoneornil(L,-1) && lua_isfunction(L,-1);
 		}
 	};
