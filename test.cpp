@@ -12,10 +12,11 @@ int main(int argc, char const *argv[])
 			}},
 			{"my_data", 0.9234},
 			{"my_bool", true},
+			{"my_int", 1},
 			{"my_chunk", lua::chunk("local world = ...; print(\"Hello \"..world..\"!\")")}
 		};
 
-		lua::root["my_scope"]["my_chunk"]("Matt");
+		lua::root["my_scope"]["my_chunk"]("Matt",1);
 	} catch (lua::exception e) {
 		std::cout << e.what() << std::endl;
 	}
