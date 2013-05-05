@@ -48,7 +48,6 @@ public:
 	val(bool b) : type_{type::boolean}, boolean{b} {}
 	val(const std::string& s) : type_{type::string}, str{s.c_str()} {}
 	val(const char* s) : type_{type::string}, str{s} {}
-	val(lua_CFunction f) : type_{type::function}, func{f} {}
 	val(void* lud) : type_{type::lightuserdata}, ptr{lud} {}
 	val(std::initializer_list<std::pair<val, val>> t) 
 		: type_{type::table}
@@ -71,10 +70,13 @@ public:
 				break;
 			case type::number: num = other.num; break;
 			case type::boolean: boolean = other.boolean; break;
-			case type::string: str = other.str; break;
 			case type::table: table = other.table; break;
-			case type::function: func = other.func; break;
 			case type::thread: thread = other.thread; break;
+			case type::chunk:
+			case type::string:
+				str = other.str;
+				break;
+			default: throw lua::exception("Bad type for copy.");
 		}
 	}
 	// template<typename T>
@@ -87,18 +89,6 @@ public:
 	// 	}
 	// }
 
-	enum class type : int {
-		nil = LUA_TNIL,
-		number = LUA_TNUMBER,
-		boolean = LUA_TBOOLEAN,
-		string = LUA_TSTRING,
-		table = LUA_TTABLE,
-		function = LUA_TFUNCTION,
-		// Userdata = LUA_TUSERDATA,
-		thread = LUA_TTHREAD,
-		lightuserdata = LUA_TLIGHTUSERDATA,
-	};
-
 	template <typename T>
 	T get() {
 		switch(type_) {
@@ -107,7 +97,6 @@ public:
 			case type::string: return get_string<T>::get(*this);
 			case type::nil: return get_nil<T>::get(*this);
 			case type::table: return get_table<T>::get(*this);
-			case type::function: return get_function<T>::get(*this);
 			case type::lightuserdata: return get_lightuserdata<T>::get(*this);
 			case type::thread:
 			default:
@@ -129,16 +118,32 @@ public:
 			
 			case type::nil:
 			case type::table:
-			case type::function:
 			case type::thread:
 			case type::lightuserdata:
 				return a.ptr == b.ptr;
+			default: lua::exception("Bad Type.");
 		}
 		return false;
 	}
 
 	static const val nil;
+
 private:
+	enum class type : int {
+		none = LUA_TNONE,
+		nil = LUA_TNIL,
+		number = LUA_TNUMBER,
+		boolean = LUA_TBOOLEAN,
+		string = LUA_TSTRING,
+		table = LUA_TTABLE,
+		lua_function = LUA_TFUNCTION,
+		// Userdata = LUA_TUSERDATA,
+		thread = LUA_TTHREAD,
+		lightuserdata = LUA_TLIGHTUSERDATA,
+		c_function = 10,
+		chunk = 11,
+	};
+
 	val(lua_State* s, type t)
 		: type_(t)
 	{
@@ -148,14 +153,19 @@ private:
 			case type::string: str = lua_tostring(s, -1); break;
 			case type::nil: ptr = nullptr; break;
 			case type::table: throw "not totally sure what to do...";
-			case type::function: func = lua_tocfunction(s, -1); break;
 			case type::thread: thread = lua_tothread(s, -1); break;
 			case type::lightuserdata: ptr = const_cast<void*>(lua_topointer(s, -1)); break;
+			default: throw lua::exception("Bad Type.");
 		}
 	}
 
 	val(lua_State* s)
 		: val(s, (type)lua_type(s, -1))
+	{}
+
+	val(const std::string& str, type t)
+		: type_{t}
+		, str{str.c_str()}
 	{}
 
 	// Puts on the top of the stack -0, +1, -
@@ -174,7 +184,7 @@ private:
 				}
 				break;
 			}
-			case type::function: lua_pushcfunction(s, func); break;
+			// case type::function: lua_pushcfunction(s, func); break;
 			// case type::Userdata: {
 			// 	auto data = lua_newuserdata(s, userData.Size);
 			// 	std::copy(userData.Data, userData.Data[userData.Size], data);
@@ -182,27 +192,29 @@ private:
 			// }
 			case type::thread: lua_pushthread(thread); break;
 			case type::lightuserdata: lua_pushlightuserdata(s, ptr); break;
+			case type::chunk: luaL_loadstring(s, str); break;
+			default: throw lua::exception("Bad Type.");
 		}
 		stackdump_g(s);
 	}
 
 	template<typename T, class Enable = void>
 	struct get_number {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_number<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return v.num;
 		}
 	};
 
 	template<typename T>
 	struct get_number<T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			std::stringstream ss;
 			ss << v.num;
 			return ss.str();
@@ -211,78 +223,125 @@ private:
 
 	template<typename T, class Enable = void>
 	struct get_boolean {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_boolean<T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return v.boolean;
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_string {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_string<T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-		static inline std::string get(const val& v) {
+		static std::string get(const val& v) {
 			return std::string(v.str);
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_nil {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return (T)NULL;
 		}
 	};
 	template<typename T>
 	struct get_nil<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return nullptr;
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_table {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T, class Enable = void>
 	struct get_function {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			throw lua::exception("Invalid Type Error");
 		}
 	};
 
 	template<typename T>
 	struct get_function<T, typename std::enable_if<std::is_function<T>::value>::type> {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return dynamic_cast<T>(v.func);
 		}
 	};
 
 	template<typename T>
 	struct get_lightuserdata {
-		static inline T get(const val& v) {
+		static T get(const val& v) {
 			return *(T*)v.ptr;
 		}
 	};
 	template<typename T>
 	struct get_lightuserdata<T*> {
-		static inline T* get(const val& v) {
+		static T* get(const val& v) {
 			return (T*)v.ptr;
 		}
 	};
+
+	template<typename TArg, typename... TArgs>
+	static int push_all(lua_State* L, TArg a, TArgs... args) {
+		pusher<TArg>::push(L, a);
+		return 1 + push_all(L, args...);
+	}
+
+	template<typename TArg>
+	static int push_all(lua_State* L, TArg a) {
+		pusher<TArg>::push(L, a);
+		return 1;
+	}
+
+	template<typename T, class Enable = void>
+	struct pusher {
+		static void push(lua_State* L, T v) {
+			val(v).push(L);
+		}
+	};
+
+	template<typename T>
+	struct pusher<T, typename std::enable_if<std::is_member_function_pointer<decltype(T::push)>::value>::type> {
+		static void push(lua_State* L, T v) {
+			v.push(L);
+		}
+	};
+
+	template<typename T, class Enable = void>
+	struct popper {
+		static T pop(lua_State* L) {
+			return val(L).get<T>();
+		}
+	};
+
+	template<typename T>
+	struct popper<T, typename std::enable_if<std::is_same<T,val>::value>::type> {
+		static val pop(lua_State* L) {
+			return val(L);
+		}
+	};
+
+	template<typename... TArgs>
+	struct popper<std::tuple<TArgs...>, std::enable_if<true>> {
+		static std::tuple<TArgs...> pop(lua_State* L) {
+			return std::tuple<TArgs...>(popper<TArgs>(L)...);
+		}
+	};	
 
 	struct UD {
 		size_t Size;
@@ -302,7 +361,7 @@ private:
 		bool  boolean;
 		lua_Number num;
 		const char * str;
-		lua_CFunction func;
+		std::function<int(lua_State*)> func;
 		lua_State* thread;
 		// UD userData;
 	};
@@ -310,8 +369,13 @@ private:
 
 	type type_;
 	friend class var;
+	friend val chunk(const std::string& str);
 };
 
 const val val::nil = val();
+
+val chunk(const std::string& str) {
+	return val(str, val::type::chunk);
+}
 
 }
