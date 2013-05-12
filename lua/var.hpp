@@ -85,7 +85,6 @@ protected:
 	void push() const {
 		parent_key_();
 		lua_gettable(L, virtual_index_ ? virtual_index_ : -2);
-		stackdump_g(L);
 	}
 
 	template<typename T>
@@ -152,7 +151,6 @@ protected:
 		}
 	};
 
-
 	var(var var, val key) 
 		: L{var.L}
 		, parent_key_{[var, key]() { var.push(); key.push(var.L); }}
@@ -165,12 +163,25 @@ protected:
 		, virtual_index_{virtual_index}
 	{}
 
-
 	lua_State* L;
 	std::function<void(void)> parent_key_;
 	int virtual_index_;
 
 	friend class root;
+	friend void do_chunk(const std::string& str, const var& env);
 };
+
+void do_chunk(const std::string& str, const var& env) {
+	luaL_loadstring(env.L, str.c_str());
+	int idx = lua_gettop(env.L);
+	{
+		stack_guard g(env.L);
+		env.push();
+		if(lua_istable(env.L, -1)) {
+			lua_setfenv(env.L, idx);
+		}
+	}
+	lua_call(env.L, 0, LUA_MULTRET);
+}
 
 }

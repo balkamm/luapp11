@@ -1,8 +1,6 @@
 MILESTONES
 
 0.1:
-	lua::chunk
-	lua::func
 	lua exception handling
 	testing
 	README
@@ -20,6 +18,10 @@ MILESTONES
 
 0.5:
 	lua loadable so?
+	lua sandboxing
+
+0.6:
+	c++ typed table
 
 0.7:
 	var stack planning and optimization.
