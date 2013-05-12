@@ -9,6 +9,15 @@ namespace lua
 class exception : public std::exception
 {
 public:
+	const char* what() const throw() override {
+		return what_.c_str();
+	}
+
+	const std::string& stack() const {
+		return stack_;
+	}
+
+private:
 	exception(std::string what)
 		: what_(what)
 		, stack_()
@@ -19,15 +28,6 @@ public:
 		, stack_(stackdump(L))
 	{}
 
-	const char* what() const throw() override {
-		return what_.c_str();
-	}
-
-	const std::string& stack() const {
-		return stack_;
-	}
-
-private:
 	static std::string stackdump(lua_State* L)
 	{
 		std::stringstream ss;
@@ -57,6 +57,9 @@ private:
 	std::string stack_;
 
 	friend class error;
+	friend class var;
+	friend class val;
+	friend class root;
 };
 
 class error
@@ -67,12 +70,6 @@ public:
 		memory = LUA_ERRMEM,
 		error = LUA_ERRERR
 	};
-
-	error(type type, std::string message, lua_State* L)
-		: type_{type}
-		, message_{message}
-		, stack_{exception::stackdump(L)}
-	{}
 
 	const type error_type() const {
 		return type_;
@@ -87,8 +84,18 @@ public:
 	}
 
 private:
+	error(type type, std::string message, lua_State* L)
+		: type_{type}
+		, message_{message}
+		, stack_{exception::stackdump(L)}
+	{}
+
 	type type_;
 	std::string message_;
 	std::string stack_;
+
+	friend class var;
+	friend class val;
+	friend class root;
 };
 }

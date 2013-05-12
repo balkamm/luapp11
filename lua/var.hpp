@@ -96,7 +96,7 @@ protected:
 	template<typename T, class Enable = void>
 	struct caller {
 		static T call(lua_State* L, int nargs) {
-			lua_call(L, nargs, sizeof(T));
+			root.call(nargs, sizeof(T));
 			return val::popper<T>::pop(L);
 		}
 	};
@@ -104,7 +104,7 @@ protected:
 	template<typename T>
 	struct caller<T, typename std::enable_if<std::is_void<T>::value>::type> {
 		static T call(lua_State* L, int nargs) {
-			lua_call(L, nargs, sizeof(T));
+			root.call(nargs, sizeof(T));
 		}
 	};
 
