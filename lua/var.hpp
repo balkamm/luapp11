@@ -6,6 +6,75 @@
 namespace lua
 {
 
+template<typename T>
+class result {
+public:
+	bool success() const {
+		return success_;
+	}
+
+	error error() const {
+		if(success_) {
+			throw exception("Trying to get error from successful result.");
+		}
+		return err_;
+	}
+
+	T value() const {
+		if(!success_) {
+			throw exception("Trying to get value from failed result.");
+		}
+		return val_;
+	}
+
+	const operator T() const {
+		return value();
+	}
+
+	const operator bool() const {
+		return success_;
+	}
+
+private:
+	result(lua::error&& err) : err_{err}, success_{false} {}
+	result(const lua::error& err) : err_{err}, success_{false} {}
+	result(T&& val) : val_{val}, success_{true} {}
+	result(const T& val) : val_{val}, success_{true} {}
+
+	bool success_;
+	union {
+		lua::error err_;
+		T val_;
+	};
+	friend class var;
+};
+
+template<>
+class result<void> {
+public:
+	
+	bool has_value() const {
+		return success_;
+	}
+
+	error error() const {
+		return err_;
+	}
+
+	const operator bool() const {
+		return success_;
+	}
+
+private:
+	result() : success_{true} {}
+	result(lua::error&& err) : err_{err}, success_{false} {}
+	result(const lua::error& err) : err_{err}, success_{false} {}
+
+	bool success_;
+	lua::error err_;
+	friend class var;
+};
+
 class var {
 public:
 	var(const var& other) = default;
@@ -66,19 +135,17 @@ public:
 	}
 
 	template<typename... TArgs>
-	void operator()(TArgs... args) {
-		if(dirty_is<void(TArgs...)>()) {
-			val::push_all<TArgs...>(L, args...);
-			caller<void>::call(L, sizeof...(TArgs));
-		}
+	result<void> operator()(TArgs... args) {
+		return invoke<void>(args...);
 	}
 
 	template<typename TOut, typename... TArgs>
-	TOut invoke(TArgs... args) {
+	result<TOut> invoke(TArgs... args) {
 		if(dirty_is<TOut(TArgs...)>()) {
 			val::push_all<TArgs...>(L, args...);
 			return caller<TOut>::call(L, sizeof...(TArgs));
 		}
+		throw exception("Tried to invoke non-function.");
 	}
 
 protected:
@@ -95,16 +162,23 @@ protected:
 	
 	template<typename T, class Enable = void>
 	struct caller {
-		static T call(lua_State* L, int nargs) {
-			root.call(nargs, sizeof(T));
+		static result<T> call(lua_State* L, int nargs) {
+			auto error = root.call(nargs, sizeof(T));
+			if(error) {
+				return *error;
+			}
 			return val::popper<T>::pop(L);
 		}
 	};
 
 	template<typename T>
 	struct caller<T, typename std::enable_if<std::is_void<T>::value>::type> {
-		static T call(lua_State* L, int nargs) {
-			root.call(nargs, sizeof(T));
+		static result<T> call(lua_State* L, int nargs) {
+			auto error = root.call(nargs, sizeof(T));
+			if (error) {
+				return *error;
+			}
+			return result<T>();
 		}
 	};
 

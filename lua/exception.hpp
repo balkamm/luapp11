@@ -66,6 +66,7 @@ class error
 {
 public:
 	enum class type {
+		none = 0,
 		runtime = LUA_ERRRUN,
 		memory = LUA_ERRMEM,
 		error = LUA_ERRERR
@@ -84,6 +85,7 @@ public:
 	}
 
 private:
+	error() : type_{type::none} {}
 	error(type type, std::string message, lua_State* L)
 		: type_{type}
 		, message_{message}
@@ -97,5 +99,7 @@ private:
 	friend class var;
 	friend class val;
 	friend class root;
+	template <typename T>
+	friend class result;
 };
 }
