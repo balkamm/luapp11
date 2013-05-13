@@ -97,7 +97,9 @@ public:
 		return false;
 	}
 
-	static const val nil;
+	static val nil() {
+		return val();
+	}
 
 private:
 	enum class type : int {
@@ -342,9 +344,7 @@ private:
 	friend val chunk(const std::string& str);
 };
 
-const val val::nil = val();
-
-val chunk(const std::string& str) {
+inline val chunk(const std::string& str) {
 	return val(str, val::type::chunk);
 }
 

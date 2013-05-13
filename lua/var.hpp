@@ -126,6 +126,10 @@ public:
 		return *this;
 	}
 
+	bool operator==(const var& other) {
+		return L == L;
+	}
+
 	var operator[](val idx) {
 		return var(*this, idx);
 	}
@@ -176,9 +180,13 @@ protected:
 	template<typename T, class Enable = void>
 	struct caller {
 		static result<T> call(lua_State* L, int nargs) {
-			auto error = root.call(nargs, sizeof(T));
-			if(error) {
-				return *error;
+			lua_call(L, nargs, 1);
+			return val::popper<T>::pop(L);
+		}
+		static result<T> pcall(lua_State* L, int nargs) {
+			auto err = lua_pcall(L, nargs, 1, 0);
+			if(err) {
+				return error((error::type)err, "Error calling lua method.", L);
 			}
 			return val::popper<T>::pop(L);
 		}
@@ -187,11 +195,30 @@ protected:
 	template<typename T>
 	struct caller<T, typename std::enable_if<std::is_void<T>::value>::type> {
 		static result<T> call(lua_State* L, int nargs) {
-			auto error = root.call(nargs, sizeof(T));
-			if (error) {
-				return *error;
+			lua_call(L, nargs, 1);
+			return result<T>();
+		}
+		static result<T> pcall(lua_State* L, int nargs) {
+			auto err = lua_pcall(L, nargs, 1, 0);
+			if(err) {
+				return error((error::type)err, "Error calling lua method", L);
 			}
 			return result<T>();
+		}
+	};
+
+	template<typename... TArgs>
+	struct caller<std::tuple<TArgs...>, std::enable_if<true>::type> {
+		static result<std::tuple<TArgs...>> call(lua_State* L, int nargs) {
+			lua_call(L, nargs, sizeof...(TArgs));
+			return result<std::tuple<TArgs...>>();
+		}
+		static result<std::tuple<TArgs...>> pcall(lua_State* L, int nargs) {
+			auto err = lua_pcall(L, nargs, sizeof...(TArgs), 0);
+			if(err) {
+				return error((error::type)err, "Error calling lua method", L);
+			}
+			return result<std::tuple<TArgs...>>();
 		}
 	};
 

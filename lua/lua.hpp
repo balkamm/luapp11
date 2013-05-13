@@ -7,7 +7,6 @@ extern "C" {
 }
 
 #include "lua/exception.hpp"
-#include "lua/fwd.hpp"
 #include "lua/val.hpp"
 #include "lua/var.hpp"
 #include "lua/root.hpp"
