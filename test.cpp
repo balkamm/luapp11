@@ -15,15 +15,15 @@ int main(int argc, char const *argv[])
 	};
 	lua::root.set_protected_calls(true);
 	// lua::do_chunk("my_scope.print = print");
-	lua::do_chunk(
+	lua::root["my_scope"].do_chunk(
 "function world(name)\
 	print(\"Hello \"..name..\"!\")\
-end", lua::root["my_scope"]);
+end");
 
 
 	auto result = lua::root["my_scope"]["world"]("Joe");
 	if(!result) {
-		std::cout << result.error().stack() << std::endl;
+		std::cout << result.error().stack() << result.error().stack() << std::endl;
 	}
 
 	return 0;

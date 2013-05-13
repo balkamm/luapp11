@@ -148,6 +148,19 @@ public:
 		throw exception("Tried to invoke non-function.");
 	}
 
+	void do_chunk(const std::string& str) {
+		luaL_loadstring(L, str.c_str());
+		int idx = lua_gettop(L);
+		{
+			stack_guard g(L);
+			push();
+			if(lua_istable(L, -1)) {
+				lua_setfenv(L, idx);
+			}
+		}
+		lua_call(L, 0, LUA_MULTRET);
+	}
+
 protected:
 	void push() const {
 		parent_key_();
@@ -242,20 +255,6 @@ protected:
 	int virtual_index_;
 
 	friend class root;
-	friend void do_chunk(const std::string& str, const var& env);
 };
-
-void do_chunk(const std::string& str, const var& env) {
-	luaL_loadstring(env.L, str.c_str());
-	int idx = lua_gettop(env.L);
-	{
-		stack_guard g(env.L);
-		env.push();
-		if(lua_istable(env.L, -1)) {
-			lua_setfenv(env.L, idx);
-		}
-	}
-	lua_call(env.L, 0, LUA_MULTRET);
-}
 
 }
