@@ -52,7 +52,13 @@ class var {
     return *this;
   }
 
-  bool operator==(const var& other) { return L == L; }
+  bool operator==(const var& other) {
+    return L == other.L && virtual_index_ == other.virtual_index_ &&
+           lineage_.size() == other.lineage_.size() &&
+           std::mismatch(lineage_.begin(),
+                         lineage_.end(),
+                         other.lineage_.begin()).first == lineage_.end();
+  }
 
   var operator[](val idx) { return var(*this, idx); }
 
