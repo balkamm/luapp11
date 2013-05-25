@@ -208,7 +208,6 @@ class var {
 
   template <typename T, class Enable = void> struct typed_is {
     static inline bool is(lua_State* L) {
-      std::cout << "Unknown Type check." << std::endl;
       return false;
     }
   };

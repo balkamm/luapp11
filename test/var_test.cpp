@@ -43,5 +43,16 @@ TEST_CASE("var_test/is", "is test") {
   REQUIRE(node.is<int>());
   REQUIRE(node.is<bool>());
   REQUIRE(node.is<std::string>());
-  REQUIRE(!node.is<std::function<void()>>() );
+  REQUIRE(!node.is<std::function<void()>>());
+}
+
+TEST_CASE("var_test/as", "as test") {
+  int val = 10;
+  auto node = lua::root["test"] = val;
+
+  REQUIRE(node.as<int>(100) == 10);
+  REQUIRE(node.as<bool>(false) == true);
+  REQUIRE(node.as<std::string>("shoes") == "10");
+  REQUIRE(node.as<std::tuple<int>>(std::make_tuple(13)) ==
+          std::make_tuple(13));
 }
