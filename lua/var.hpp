@@ -5,74 +5,6 @@
 
 namespace lua {
 
-template <typename T> class result {
- public:
-  bool success() const { return success_; }
-
-  error error() const {
-    if (success_) {
-      throw exception("Trying to get error from successful result.");
-    }
-    return err_;
-  }
-
-  T value() const {
-    if (!success_) {
-      throw exception("Trying to get value from failed result.");
-    }
-    return val_;
-  }
-
-  const operator T() const { return value(); }
-
-  const operator bool() const { return success_; }
-
- private:
-  result(lua::error && err) : err_ { err }
-  , success_ { false }
-  {}
-  result(const lua::error& err) : err_ { err }
-  , success_ { false }
-  {}
-  result(T && val) : val_ { val }
-  , success_ { true }
-  {}
-  result(const T& val) : val_ { val }
-  , success_ { true }
-  {}
-
-  bool success_;
-  union {
-    lua::error err_;
-    T val_;
-  };
-  friend class var;
-};
-
-template <> class result<void> {
- public:
-
-  bool has_value() const { return success_; }
-
-  error error() const { return err_; }
-
-  const operator bool() const { return success_; }
-
- private:
-  result() : success_ { true }
-  {}
-  result(lua::error && err) : err_ { err }
-  , success_ { false }
-  {}
-  result(const lua::error& err) : err_ { err }
-  , success_ { false }
-  {}
-
-  bool success_;
-  lua::error err_;
-  friend class var;
-};
-
 class var {
  public:
   var(const var& other) = default;
@@ -80,6 +12,7 @@ class var {
 
   // Gets the value of the var
   val get_value() const {
+    stack_guard g(L);
     push();
     return val(L);
   }
@@ -100,22 +33,22 @@ class var {
   // Assigns the var with another var
   var& operator=(const var & var) {
     stack_guard g(L);
-    parent_key_();
+    push_parent_key();
     if (L == var.L) {
       stack_guard g2(L, true);
       var.push();
     } else {
       var.get_value().push(L);
     }
-    lua_settable(L, virtual_index_ ? virtual_index_ : -3);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
 
   var& operator=(const val & val) {
     stack_guard g(L);
-    parent_key_();
+    push_parent_key();
     val.push(L);
-    lua_settable(L, virtual_index_ ? virtual_index_ : -3);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
 
@@ -152,9 +85,20 @@ class var {
   }
 
  protected:
+  void push_parent_key() const {
+    bool first;
+    for (auto& l : lineage_) {
+      l.push(L);
+      if (&l != &lineage_.back()) {
+        lua_gettable(L, first ? virtual_index_ : -2);
+      }
+      first = false;
+    }
+  }
+
   void push() const {
-    parent_key_();
-    lua_gettable(L, virtual_index_ ? virtual_index_ : -2);
+    push_parent_key();
+    lua_gettable(L, lineage_.size() == 1 ? virtual_index_ : -2);
   }
 
   template <typename T> bool dirty_is() const {
@@ -207,9 +151,7 @@ class var {
   };
 
   template <typename T, class Enable = void> struct typed_is {
-    static inline bool is(lua_State* L) {
-      return false;
-    }
+    static inline bool is(lua_State* L) { return false; }
   };
 
   template <typename T>
@@ -252,25 +194,17 @@ class var {
     }
   };
 
-  var(var var, val key) : L { var.L }
-  , parent_key_ {
-    [var, key]() {
-      var.push();
-      key.push(var.L);
-    }
-  }
-  , virtual_index_ { 0 }
-  {}
-
   var(lua_State* L, int virtual_index, val key) : L { L }
-  , parent_key_ {
-    [L, key]() { key.push(L); }
-  }
   , virtual_index_ { virtual_index }
-  {}
+  { lineage_.push_back(key); }
+
+  var(var v, val key) : L { v.L }
+  , virtual_index_ { v.virtual_index_ }
+  , lineage_ { v.lineage_ }
+  { lineage_.push_back(key); }
 
   lua_State* L;
-  std::function<void(void)> parent_key_;
+  std::vector<val> lineage_;
   int virtual_index_;
 
   friend class root;

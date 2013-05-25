@@ -15,10 +15,10 @@ struct stack_guard {
   {}
 
   ~stack_guard() {
-    if (ret_) {
-
-    }
     auto toPop = lua_gettop(state_) - initTop_;
+    if (ret_) {
+      toPop--;
+    }
     if (toPop > 0) {
       lua_pop(state_, toPop);
     }

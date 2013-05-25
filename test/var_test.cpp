@@ -56,3 +56,11 @@ TEST_CASE("var_test/as", "as test") {
   REQUIRE(node.as<std::tuple<int>>(std::make_tuple(13)) ==
           std::make_tuple(13));
 }
+
+TEST_CASE("var_test/assign", "assign test") {
+  int val = 10;
+  auto node = lua::root["test"] = val;
+  auto node2 = lua::root["test2"] = node;
+
+  REQUIRE(node.get<int>() == node2.get<int>());
+}
