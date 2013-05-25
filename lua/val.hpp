@@ -109,7 +109,7 @@ class val {
       case type::boolean:
         return a.boolean == b.boolean;
       case type::string:
-        return strcmp(a.str, b.str);
+        return strcmp(a.str, b.str) == 0;
 
       case type::nil:
       case type::table:

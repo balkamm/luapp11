@@ -53,12 +53,28 @@ class var {
   }
 
   bool operator==(const var& other) {
+    if (L != other.L) {
+      std::cout << "L mismatch" << std::endl;
+    }
+    if (virtual_index_ != other.virtual_index_) {
+      std::cout << "VI mismatch" << std::endl;
+    }
+    if (lineage_.size() != other.lineage_.size()) {
+      std::cout << "size mismatch" << std::endl;
+    }
+    if (std::mismatch(lineage_.begin(), lineage_.end(), other.lineage_.begin())
+            .first != lineage_.end()) {
+      std::cout << "mismatch mismatch" << std::endl;
+    }
+
     return L == other.L && virtual_index_ == other.virtual_index_ &&
            lineage_.size() == other.lineage_.size() &&
            std::mismatch(lineage_.begin(),
                          lineage_.end(),
                          other.lineage_.begin()).first == lineage_.end();
   }
+
+  bool operator!=(const var& other) { return !(operator==(other)); }
 
   var operator[](val idx) { return var(*this, idx); }
 
