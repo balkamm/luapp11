@@ -73,3 +73,13 @@ TEST_CASE("var_test/equality", "equality tests") {
   REQUIRE(root["test"] != root["test"]["foo"]);
   REQUIRE(root["test"]["foo"] != root["test"][1]);
 }
+
+TEST_CASE("var_test/operator()", "operator() test") {
+  auto func = root["func"] = chunk(
+    R"PREFIX(
+    function ()
+      local v = i
+    end
+    )PREFIX");
+  REQUIRE_NOTHROW(func());
+}
