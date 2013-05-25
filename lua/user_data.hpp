@@ -1,13 +1,10 @@
 #pragma once
 
-namespace lua
-{
+namespace lua {
 
-template<typename T>
-class UserData
-{
-public:
-	
+template <typename T> class UserData {
+ public:
+
 };
 
 }
