@@ -87,12 +87,16 @@ class var {
     throw exception("Tried to invoke non-function.", L);
   }
 
-  void do_chunk(const std::string& str) {
+  error do_chunk(const std::string& str) {
     stack_guard g(L);
     push_parent_key();
-    luaL_loadstring(L, str.c_str());
+    auto err = luaL_loadstring(L, str.c_str());
+    if(err != 0) {
+      return error(err, "Unable to load chunk.", L);
+    }
     lua_pcall(L, 0, 1, 0);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
+    return error();
   }
 
  protected:
@@ -125,7 +129,7 @@ class var {
     static result<T> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, 1, 0);
       if (err) {
-        return error((error::type) err, "Error calling lua method.", L);
+        return error(err, "Error calling lua method.", L);
       }
       return val::popper<T>::pop(L);
     }
@@ -140,7 +144,7 @@ class var {
     static result<T> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, 1, 0);
       if (err) {
-        return error((error::type) err, "Error calling lua method", L);
+        return error(err, "Error calling lua method", L);
       }
       return result<T>();
     }
@@ -155,7 +159,7 @@ class var {
     static result<std::tuple<TArgs ...>> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, sizeof ...(TArgs), 0);
       if (err) {
-        return error((error::type) err, "Error calling lua method", L);
+        return error(err, "Error calling lua method", L);
       }
       return result<std::tuple<TArgs ...>>();
     }
