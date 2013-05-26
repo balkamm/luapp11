@@ -4630,7 +4630,6 @@ namespace Catch {
         std::string tryTranslators( std::vector<const IExceptionTranslator*>::const_iterator it ) const {
             if( it == m_translators.end() )
                 return "Unknown exception";
-
             try {
                 return (*it)->translate();
             }

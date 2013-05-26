@@ -155,7 +155,7 @@ class val {
         ptr = nullptr;
         break;
       case type::table:
-        throw "not totally sure what to do...";
+        throw lua::exception("not totally sure what to do...", s);
       case type::thread:
         thread = lua_tothread(s, -1);
         break;
@@ -163,7 +163,7 @@ class val {
         ptr = const_cast<void*>(lua_topointer(s, -1));
         break;
       default:
-        throw lua::exception("Bad Type.");
+        throw lua::exception("Bad Type.", s);
     }
   }
 
@@ -213,7 +213,7 @@ class val {
         luaL_loadstring(s, str);
         break;
       default:
-        throw lua::exception("Bad Type.");
+        throw lua::exception("Bad Type.", s);
     }
   }
 

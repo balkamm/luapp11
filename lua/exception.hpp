@@ -7,7 +7,7 @@
 namespace lua {
 class exception : public std::exception {
  public:
-  const char* what() const throw() override { return what_.c_str(); }
+  const char* what() const noexcept override { return what_.c_str(); }
 
   const std::string& stack() const { return stack_; }
 

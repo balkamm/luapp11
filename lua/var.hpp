@@ -74,17 +74,16 @@ class var {
   result<TOut> invoke(TArgs ... args) {
     if (dirty_is<TOut(TArgs ...)>()) {
       val::push_all<TArgs ...>(L, args ...);
-      return caller<TOut>::call(L, sizeof ...(TArgs));
+      return caller<TOut>::pcall(L, sizeof ...(TArgs));
     }
-    throw exception("Tried to invoke non-function.");
+    throw exception("Tried to invoke non-function.", L);
   }
 
-  template <typename TOut>
-  result<TOut> invoke() {
+  template <typename TOut> result<TOut> invoke() {
     if (dirty_is<TOut()>()) {
-      return caller<TOut>::call(L, 0);
+      return caller<TOut>::pcall(L, 0);
     }
-    throw exception("Tried to invoke non-function.");
+    throw exception("Tried to invoke non-function.", L);
   }
 
   void do_chunk(const std::string& str) {
@@ -97,7 +96,7 @@ class var {
         lua_setfenv(L, idx);
       }
     }
-    lua_call(L, 0, LUA_MULTRET);
+    lua_pcall(L, 0, LUA_MULTRET, 0);
   }
 
  protected:
@@ -119,6 +118,7 @@ class var {
 
   template <typename T> bool dirty_is() const {
     push();
+    std::cout << exception::stackdump(L);
     return typed_is<T>::is(L);
   }
 
