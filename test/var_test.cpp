@@ -76,15 +76,15 @@ TEST_CASE("var_test/equality", "equality tests") {
 
 TEST_CASE("var_test/do_chunk", "do_chunk test") {
   auto node = root["test"];
-  node.do_chunk("foo = 15");
-  REQUIRE(node["foo"].get<int>() == 15);
+  node.do_chunk("return 15");
+  REQUIRE(node.get<int>() == 15);
 }
 
 TEST_CASE("var_test/operator()", "operator() test") {
   auto func = root["func"];
   func.do_chunk(
       R"PREFIX(
-    function ()
+    return function ()
       local v = 5
     end
     )PREFIX");

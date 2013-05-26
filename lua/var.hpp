@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <iostream>
+#include <vector>
 
 namespace lua {
 
@@ -87,16 +88,11 @@ class var {
   }
 
   void do_chunk(const std::string& str) {
+    stack_guard g(L);
+    push_parent_key();
     luaL_loadstring(L, str.c_str());
-    int idx = lua_gettop(L);
-    {
-      stack_guard g(L);
-      push();
-      if (lua_istable(L, -1)) {
-        lua_setfenv(L, idx);
-      }
-    }
-    lua_pcall(L, 0, LUA_MULTRET, 0);
+    lua_pcall(L, 0, 1, 0);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
   }
 
  protected:
