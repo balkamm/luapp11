@@ -114,7 +114,6 @@ class var {
 
   template <typename T> bool dirty_is() const {
     push();
-    std::cout << exception::stackdump(L);
     return typed_is<T>::is(L);
   }
 

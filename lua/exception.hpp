@@ -57,6 +57,7 @@ class exception : public std::exception {
   friend class var;
   friend class val;
   friend class root;
+  template <typename T> friend class result;
 };
 
 class error {
@@ -78,6 +79,7 @@ class error {
   , message_ { message }
   , stack_ { exception::stackdump(L) }
   {}
+  ~error() = default;
 
   type type_;
   std::string message_;

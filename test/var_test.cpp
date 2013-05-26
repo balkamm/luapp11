@@ -91,4 +91,15 @@ TEST_CASE("var_test/operator()", "operator() test") {
   REQUIRE_NOTHROW(func());
 }
 
-TEST_CASE("var_test/invoke", "invoke test") {}
+TEST_CASE("var_test/invoke", "invoke test") {
+  auto func = root["func"];
+  func.do_chunk(
+      R"PREFIX(
+    return function (i)
+      return i + 5
+    end
+    )PREFIX");
+  auto result = func.invoke<int>(7);
+  REQUIRE(result.success());
+  REQUIRE(result.value() == 12);
+}

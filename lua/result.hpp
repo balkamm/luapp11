@@ -4,6 +4,16 @@ namespace lua {
 
 template <typename T> class result {
  public:
+  ~result() {}
+  result(const result& r) : success_ { r.success_ }
+  {
+    if (success_) {
+      val_ = r.val_;
+    } else {
+      err_ = r.err_;
+    }
+  }
+
   bool success() const { return success_; }
 
   error error() const {
@@ -20,9 +30,9 @@ template <typename T> class result {
     return val_;
   }
 
-  const operator T() const { return value(); }
+  const explicit operator T() const { return value(); }
 
-  const operator bool() const { return success_; }
+  const explicit operator bool() const { return success_; }
 
  private:
   result(lua::error && err) : err_ { err }
