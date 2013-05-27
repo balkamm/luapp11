@@ -1,30 +1,40 @@
 MILESTONES
+==========
 
-0.2:
-	lua file loading & management
+0.2
+---
+* lua file loading & management
 
 0.3
-	lua UserData
-	C++ func
+---
+* lua UserData
+* C++ func
 
-0.4:
-	threading support
+0.4
+---
+* threading support
 
-0.5:
-	lua loadable so?
-	lua sandboxing
+0.5
+---
+* lua loadable so?
+* lua sandboxing
 
-0.6:
-	c++ typed table
+0.6
+---
+* c++ typed table
 
-0.7:
-	var stack planning and optimization.
+0.7
+---
+* var stack planning and optimization.
 
-0.8:
-	lua 5.2 support?
+0.8
+---
+* lua 5.2 support?
 
-0.9:
-	Benchmarking & performance improvements
+0.9
+---
+* Benchmarking & performance improvements
 
-1.0:
-	testing testing testing
+1.0
+---
+* testing testing testing
