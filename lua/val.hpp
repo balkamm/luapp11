@@ -69,15 +69,8 @@ class val {
         throw lua::exception("Bad type for copy.");
     }
   }
-  // template<typename T>
-  // val(UserData<T>&& data) 
-  // 	: type_{type::Userdata}
-  // {
-  // 	val_.userData = UD{ 
-  // 		sizeof(UserData<T>),
-  // 		new UserData<T>(std::forward(data))
-  // 	}
-  // }
+
+  val(val && other) { swap(*this, other); }
 
   template <typename T> T get() {
     switch (type_) {
@@ -122,8 +115,52 @@ class val {
     return false;
   }
 
-  static val nil() { return val(); }
+  val& operator=(val other) {
+    swap(*this, other);
+    return *this;
+  }
 
+  friend void swap(val& a, val& b) {
+    using std::swap;
+    swap(a.type_, b.type_);
+    switch (a.type_) {
+      case type::nil:
+      case type::lightuserdata:
+        swap(a.ptr, b.ptr);
+        break;
+      case type::number:
+        swap(a.num, b.num);
+        break;
+      case type::boolean:
+        swap(a.boolean, b.boolean);
+        break;
+      case type::table:
+        swap(a.table, b.table);
+        break;
+      case type::thread:
+        swap(a.thread, b.thread);
+        break;
+      case type::chunk:
+      case type::string:
+        swap(a.str, b.str);
+        break;
+      case type::none:
+      case type::lua_function:
+      case type::c_function:
+        break;
+    }
+  }
+ private:
+  class valueHasher {
+   public:
+    size_t operator()(const val& v) const {
+      std::hash<lua_Number> hasher;
+      return hasher(v.num);
+    }
+  };
+ public:
+  static val nil() { return val(); }
+  typedef std::unordered_map<val, val, valueHasher> table_type;
  private:
   enum class type : int {
     none = LUA_TNONE,
@@ -199,9 +236,9 @@ class val {
       }
         // case type::function: lua_pushcfunction(s, func); break;
         // case type::Userdata: {
-        // 	auto data = lua_newuserdata(s, userData.Size);
-        // 	std::copy(userData.Data, userData.Data[userData.Size], data);
-        // 	break;
+        //  auto data = lua_newuserdata(s, userData.Size);
+        //  std::copy(userData.Data, userData.Data[userData.Size], data);
+        //  break;
         // }
       case type::thread:
         lua_pushthread(thread);
@@ -254,19 +291,91 @@ class val {
   template <typename T>
   struct get_string<
       T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-    static std::string get(const val& v) { return std::string(v.str); }
+    static T get(const val& v) { return std::string(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, bool>::value>::type> {
+    static T get(const val& v) { return true; }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, int>::value>::type> {
+    static T get(const val& v) { return std::stoi(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long>::value>::type> {
+    static T get(const val& v) { return std::stol(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long long>::value>::type> {
+    static T get(const val& v) { return std::stoll(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, unsigned long>::value>::type> {
+    static T get(const val& v) { return std::stoul(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<T,
+                    typename std::enable_if<
+                        std::is_same<T, unsigned long long>::value>::type> {
+    static T get(const val& v) { return std::stoull(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, float>::value>::type> {
+    static T get(const val& v) { return std::stof(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, double>::value>::type> {
+    static T get(const val& v) { return std::stod(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long double>::value>::type> {
+    static T get(const val& v) { return std::stold(v.str); }
   };
 
   template <typename T, class Enable = void> struct get_nil {
-    static T get(const val& v) { return (T) NULL; }
+    static T get(const val& v) {
+      throw lua::exception("get_nil: Invalid Type Error");
+    }
   };
+
   template <typename T>
   struct get_nil<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
     static T get(const val& v) { return nullptr; }
   };
 
+  template <typename T>
+  struct get_nil<T,
+                 typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+    static T get(const val& v) { return (T) NULL; }
+  };
+
   template <typename T, class Enable = void> struct get_table {
-    static T get(const val& v) { throw lua::exception("Invalid Type Error"); }
+    static T get(const val& v) {
+      throw lua::exception("get_table: Invalid Type Error");
+    }
+  };
+
+  template <typename T>
+  struct get_table<
+      T, typename std::enable_if<std::is_same<T, table_type>::value>::type> {
+    static T get(const val& v) { return *v.table; }
   };
 
   template <typename T, class Enable = void> struct get_function {
@@ -329,14 +438,6 @@ class val {
     void* Data;
   };
 
-  class valueHasher {
-   public:
-    size_t operator()(const val& v) const {
-      std::hash<lua_Number> hasher;
-      return hasher(v.num);
-    }
-  };
-
   union {
     void* ptr;
     bool boolean;
@@ -345,8 +446,8 @@ class val {
     std::function<int(lua_State*)> func;
     lua_State* thread;
     // UD userData;
+    std::shared_ptr<table_type> table;
   };
-  std::shared_ptr<std::unordered_map<val, val, valueHasher>> table;
 
   type type_;
   friend class var;
