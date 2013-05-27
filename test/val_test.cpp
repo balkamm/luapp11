@@ -50,4 +50,10 @@ TEST_CASE("val_test/get", "get test") {
 	CHECK(v4.get<int>() == 1);
 	CHECK_THROWS(v4.get<std::string>());
 	CHECK_THROWS(v4.get<void*>());
+
+	auto nil = val::nil();
+	CHECK(nil.get<void*>() == (void*)nullptr);
+	CHECK(nil.get<bool>() == false);
+	CHECK(nil.get<int>() == 0);
+	CHECK_THROWS(nil.get<std::string>());
 }
