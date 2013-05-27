@@ -18,13 +18,6 @@ TEST_CASE("val_test/create", "create test") {
 	CHECK(values["nil"] == val::nil());
 }
 
-TEST_CASE("val_test/equals", "equals test") {
-  CHECK(val(10) == val(10));
-  CHECK(val("foo") == val("foo"));
-  CHECK(val(true) == val(true));
-  CHECK(val() == val());
-}
-
 TEST_CASE("val_test/get", "get test") {
 	val v1(10);
 	CHECK(v1.get<int>() == 10);
@@ -56,4 +49,32 @@ TEST_CASE("val_test/get", "get test") {
 	CHECK(nil.get<bool>() == false);
 	CHECK(nil.get<int>() == 0);
 	CHECK_THROWS(nil.get<std::string>());
+}
+
+TEST_CASE("val_test/equals", "equals test") {
+	int ud;
+	CHECK(val(10) == val(10));
+	CHECK(val(10) == val(10.0f));
+	CHECK(val(10) != val("10"));
+	CHECK(val(10) != val(9));
+	CHECK(val(10) != val(&ud));
+	CHECK(val(10) != val::nil());
+
+	CHECK(val("foo") == val("foo"));
+	CHECK(val("foo") != val("10"));
+	CHECK(val("foo") != val(10));
+	CHECK(val("foo") != val(&ud));
+	CHECK(val("foo") != val::nil());
+
+	CHECK(val(&ud) == val(&ud));
+	CHECK(val(&ud) != val(true));
+	CHECK(val(&ud) != val("&ud"));
+	CHECK(val(&ud) != val(10));
+	CHECK(val(&ud) != val::nil());
+
+	CHECK(val(true) == val(true));
+	CHECK(val(true) != val(false));
+	CHECK(val(true) != val("true"));
+	CHECK(val(true) != val(10));
+	CHECK(val(true) != val::nil());
 }

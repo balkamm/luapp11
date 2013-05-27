@@ -115,6 +115,8 @@ class val {
     return false;
   }
 
+  friend bool operator!=(const val& a, const val& b) { return !(a == b); }
+
   val& operator=(val other) {
     swap(*this, other);
     return *this;
