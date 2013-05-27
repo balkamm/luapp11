@@ -64,6 +64,7 @@ class error {
  public:
   ~error() = default;
   error(const error&) = default;
+
   enum class type {
     none = 0, runtime = LUA_ERRRUN, memory = LUA_ERRMEM, error = LUA_ERRERR
   };
@@ -74,14 +75,12 @@ class error {
 
   const std::string& stack() const { return stack_; }
 
-  const explicit operator bool() const {
-    return type_ == type::none;
-  }
+  const explicit operator bool() const { return type_ != type::none; }
 
  private:
   error() : type_ { type::none }
   {}
-  error(int t, std::string message, lua_State* L) : type_ { (type)t }
+  error(int t, std::string message, lua_State* L) : type_ { (type) t }
   , message_ { message }
   , stack_ { exception::stackdump(L) }
   {}
