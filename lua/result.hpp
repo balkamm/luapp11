@@ -30,7 +30,7 @@ template <typename T> class result {
     return val_;
   }
 
-  const explicit operator T() const { return value(); }
+  const operator T() const { return value(); }
 
   const explicit operator bool() const { return success_; }
 

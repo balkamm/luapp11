@@ -1,12 +1,7 @@
 MILESTONES
 
-0.1:
-	testing
-
 0.2:
 	lua file loading & management
-	README
-	LICENSE
 
 0.3
 	lua UserData

@@ -148,6 +148,7 @@ TEST_CASE("var_test/operator()", "operator() test") {
     end
     )PREFIX");
   CHECK_NOTHROW(func());
+  CHECK_THROWS(lua::root["foo"]);
 }
 
 TEST_CASE("var_test/invoke", "invoke test") {
@@ -161,4 +162,5 @@ TEST_CASE("var_test/invoke", "invoke test") {
   auto result = func.invoke<int>(7);
   CHECK(result.success());
   CHECK(result.value() == 12);
+  CHECK_THROWS(lua::root["foo"].invoke<int>());
 }
