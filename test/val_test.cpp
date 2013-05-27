@@ -78,3 +78,9 @@ TEST_CASE("val_test/equals", "equals test") {
 	CHECK(val(true) != val(10));
 	CHECK(val(true) != val::nil());
 }
+
+TEST_CASE("val_test/assign", "assign test") {
+	val v1(10);
+	auto v2 = v1;
+	CHECK(v1 == v2);
+}
