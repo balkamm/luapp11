@@ -1,7 +1,7 @@
 luapp11 0.1
 ===========
 
-Luapp11 is a set of lua bindings for C++11.  It's designed to abstract away much of the dynamic and stack based nature of the lua C API and provide a nice clean well typed interface between c++11 code and lua code.  The only dependency is the c++11 standard library and a c++11 compliant compiler.
+Luapp11 is a set of header only lua bindings for C++11.  It's designed to abstract away much of the dynamic and stack based nature of the lua C API and provide a nice clean well typed interface between c++11 code and lua code.  The only dependency is the c++11 standard library and a c++11 compliant compiler.
 
 Using
 -----
