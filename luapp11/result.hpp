@@ -1,6 +1,6 @@
 #pragma once
 
-namespace lua {
+namespace luapp11 {
 
 template <typename T> class result {
  public:
@@ -35,10 +35,10 @@ template <typename T> class result {
   const explicit operator bool() const { return success_; }
 
  private:
-  result(lua::error && err) : err_ { err }
+  result(luapp11::error && err) : err_ { err }
   , success_ { false }
   {}
-  result(const lua::error& err) : err_ { err }
+  result(const luapp11::error& err) : err_ { err }
   , success_ { false }
   {}
   result(T && val) : val_ { val }
@@ -50,7 +50,7 @@ template <typename T> class result {
 
   bool success_;
   union {
-    lua::error err_;
+    luapp11::error err_;
     T val_;
   };
   friend class var;
@@ -68,15 +68,15 @@ template <> class result<void> {
  private:
   result() : success_ { true }
   {}
-  result(lua::error && err) : err_ { err }
+  result(luapp11::error && err) : err_ { err }
   , success_ { false }
   {}
-  result(const lua::error& err) : err_ { err }
+  result(const luapp11::error& err) : err_ { err }
   , success_ { false }
   {}
 
   bool success_;
-  lua::error err_;
+  luapp11::error err_;
   friend class var;
 };
 

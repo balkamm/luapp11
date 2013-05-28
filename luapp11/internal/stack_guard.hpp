@@ -3,7 +3,7 @@
 #include "lua.hpp"
 #include <utility>
 
-namespace lua {
+namespace luapp11 {
 
 struct stack_guard {
   lua_State* state_;

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "lua/internal/stack_guard.hpp"
-#include "lua/exception.hpp"
+#include "luapp11/internal/stack_guard.hpp"
+#include "luapp11/exception.hpp"
 #include <memory>
 #include <utility>
 #include <unordered_map>
 #include <cstring>
 #include <sstream>
 
-namespace lua {
+namespace luapp11 {
 
 class val {
  public:
@@ -66,7 +66,7 @@ class val {
         str = other.str;
         break;
       default:
-        throw lua::exception("Bad type for copy.");
+        throw luapp11::exception("Bad type for copy.");
     }
   }
 
@@ -88,7 +88,7 @@ class val {
         return get_lightuserdata<T>::get(*this);
       case type::thread:
       default:
-        throw lua::exception("Invalid Type Error");
+        throw luapp11::exception("Invalid Type Error");
     }
   }
 
@@ -110,7 +110,7 @@ class val {
       case type::lightuserdata:
         return a.ptr == b.ptr;
       default:
-        lua::exception("Bad Type.");
+        luapp11::exception("Bad Type.");
     }
     return false;
   }
@@ -194,7 +194,7 @@ class val {
         ptr = nullptr;
         break;
       case type::table:
-        throw lua::exception("not totally sure what to do...", s);
+        throw luapp11::exception("not totally sure what to do...", s);
       case type::thread:
         thread = lua_tothread(s, -1);
         break;
@@ -202,7 +202,7 @@ class val {
         ptr = const_cast<void*>(lua_topointer(s, -1));
         break;
       default:
-        throw lua::exception("Bad Type.", s);
+        throw luapp11::exception("Bad Type.", s);
     }
   }
 
@@ -252,12 +252,12 @@ class val {
         luaL_loadstring(s, str);
         break;
       default:
-        throw lua::exception("Bad Type.", s);
+        throw luapp11::exception("Bad Type.", s);
     }
   }
 
   template <typename T, class Enable = void> struct get_number {
-    static T get(const val& v) { throw lua::exception("Invalid Type Error"); }
+    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
   };
 
   template <typename T>
@@ -277,7 +277,7 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_boolean {
-    static T get(const val& v) { throw lua::exception("Invalid Type Error"); }
+    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
   };
 
   template <typename T>
@@ -287,7 +287,7 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_string {
-    static T get(const val& v) { throw lua::exception("Invalid Type Error"); }
+    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
   };
 
   template <typename T>
@@ -353,7 +353,7 @@ class val {
 
   template <typename T, class Enable = void> struct get_nil {
     static T get(const val& v) {
-      throw lua::exception("get_nil: Invalid Type Error");
+      throw luapp11::exception("get_nil: Invalid Type Error");
     }
   };
 
@@ -370,7 +370,7 @@ class val {
 
   template <typename T, class Enable = void> struct get_table {
     static T get(const val& v) {
-      throw lua::exception("get_table: Invalid Type Error");
+      throw luapp11::exception("get_table: Invalid Type Error");
     }
   };
 
@@ -381,7 +381,7 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_function {
-    static T get(const val& v) { throw lua::exception("Invalid Type Error"); }
+    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
   };
 
   template <typename T>

@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "lua/lua.hpp"
+#include "luapp11/lua.hpp"
 
 TEST_CASE("root_test/protected", "Protected Calls") {
 	

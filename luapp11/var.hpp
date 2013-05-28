@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-namespace lua {
+namespace luapp11 {
 
 class var {
  public:

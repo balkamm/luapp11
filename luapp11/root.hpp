@@ -1,6 +1,6 @@
 #pragma once
 
-namespace lua {
+namespace luapp11 {
 
 class root {
  public:
@@ -13,7 +13,7 @@ class root {
   var operator[](val key) const { return var(L, LUA_GLOBALSINDEX, key); }
 
  private:
-  static int panic(lua_State* L) { throw lua::exception("lua panic", L); }
+  static int panic(lua_State* L) { throw luapp11::exception("lua panic", L); }
 
   lua_State* L;
 
@@ -23,7 +23,7 @@ class root {
 static root root;
 
 inline void do_chunk(const std::string& str) {
-  luaL_dostring(lua::root.L, str.c_str());
+  luaL_dostring(root.L, str.c_str());
 }
 
 }

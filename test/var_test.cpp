@@ -1,7 +1,7 @@
 #include "catch.hpp"
-#include "lua/lua.hpp"
+#include "luapp11/lua.hpp"
 
-using namespace lua;
+using namespace luapp11;
 
 TEST_CASE("var_test/copy", "var copy test") {
   int val = 10;
@@ -148,7 +148,7 @@ TEST_CASE("var_test/operator()", "operator() test") {
     end
     )PREFIX");
   CHECK_NOTHROW(func());
-  CHECK_THROWS(lua::root["foo"]);
+  CHECK_THROWS(root["foo"]);
 }
 
 TEST_CASE("var_test/invoke", "invoke test") {
@@ -162,5 +162,5 @@ TEST_CASE("var_test/invoke", "invoke test") {
   auto result = func.invoke<int>(7);
   CHECK(result.success());
   CHECK(result.value() == 12);
-  CHECK_THROWS(lua::root["foo"].invoke<int>());
+  CHECK_THROWS(root["foo"].invoke<int>());
 }

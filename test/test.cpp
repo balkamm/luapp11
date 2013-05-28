@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "lua/lua.hpp"
+#include "luapp11/lua.hpp"
 
-CATCH_TRANSLATE_EXCEPTION(lua::exception& e) {
+CATCH_TRANSLATE_EXCEPTION(luapp11::exception& e) {
   return std::string("Exception: ") + e.what() + "\n" + e.stack();
 }

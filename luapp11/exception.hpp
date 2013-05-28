@@ -4,7 +4,7 @@
 #include <string>
 #include <sstream>
 
-namespace lua {
+namespace luapp11 {
 class exception : public std::exception {
  public:
   const char* what() const noexcept override { return what_.c_str(); }

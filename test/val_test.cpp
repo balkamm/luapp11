@@ -1,7 +1,7 @@
 #include "catch.hpp"
-#include "lua/lua.hpp"
+#include "luapp11/lua.hpp"
 
-using namespace lua;
+using namespace luapp11;
 
 TEST_CASE("val_test/create", "create test") {
 	val v = {
