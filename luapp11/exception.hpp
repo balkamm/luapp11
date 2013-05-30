@@ -66,27 +66,43 @@ class error {
   error(const error&) = default;
 
   enum class type {
-    none = 0, runtime = LUA_ERRRUN, memory = LUA_ERRMEM, error = LUA_ERRERR, syntax = LUA_ERRSYNTAX
+    none = 0,
+    runtime = LUA_ERRRUN,
+    memory = LUA_ERRMEM,
+    error = LUA_ERRERR,
+    syntax = LUA_ERRSYNTAX
   };
 
   const type error_type() const { return type_; }
 
   const std::string& message() const { return message_; }
+  const std::string& lua_message() const { return lua_message_; }
 
   const std::string& stack() const { return stack_; }
 
   const explicit operator bool() const { return type_ != type::none; }
 
+  friend std::ostream& operator<<(std::ostream& out, const error& e) {
+    return out << "luapp11 Error:" << (int)
+           e.type_ << std::endl << e.message_ << std::endl << e.lua_message_
+               << std::endl << e.stack_ << std::endl;
+  }
  private:
   error() : type_ { type::none }
   {}
   error(int t, std::string message, lua_State* L) : type_ { (type) t }
   , message_ { message }
-  , stack_ { exception::stackdump(L) }
-  {}
+  {
+    if (lua_isstring(L, -1)) {
+      lua_message_ = lua_tostring(L, -1);
+      lua_pop(L, 1);
+    }
+    stack_ = exception::stackdump(L);
+  }
 
   type type_;
   std::string message_;
+  std::string lua_message_;
   std::string stack_;
 
   friend class var;
