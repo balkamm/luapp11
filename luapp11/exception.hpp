@@ -94,5 +94,6 @@ class error {
   friend class root;
   template <typename T> friend class result;
   friend error do_chunk(const std::string& str);
+  friend error do_file(const std::string& path);
 };
 }

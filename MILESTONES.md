@@ -4,11 +4,11 @@ MILESTONES
 0.2
 ---
 * lua file loading & management
+* C++ func
 
 0.3
 ---
 * lua UserData
-* C++ func
 
 0.4
 ---

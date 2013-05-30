@@ -102,6 +102,21 @@ class var {
     return error();
   }
 
+  error do_file(const std::string& path) {
+    stack_guard g(L);
+    push_parent_key();
+    auto err = luaL_loadfile(L, path.c_str());
+    if(err != 0) {
+      return error(err, "Unable to load file.", L);
+    }
+    err = lua_pcall(L, 0, 1, 0);
+    if(err != 0) {
+      return error(err, "Unable to run file.", L);
+    }
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
+    return error();
+  }
+
  protected:
   void push_parent_key() const {
     bool first;
