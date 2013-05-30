@@ -17,13 +17,21 @@ class root {
 
   lua_State* L;
 
-  friend void do_chunk(const std::string& str);
+  friend error do_chunk(const std::string& str);
 };
 
 static root root;
 
-inline void do_chunk(const std::string& str) {
-  luaL_dostring(root.L, str.c_str());
+inline error do_chunk(const std::string& str) {
+  int loadError = luaL_loadstring(root.L, str.c_str());
+  if (loadError != 0) {
+    return error(loadError, "Error loading chunk.", root.L);
+  }
+  int runError = lua_pcall(root.L, 0, LUA_MULTRET, 0);
+  if(runError != 0) {
+    return error(runError, "Error running chunk.", root.L);
+  }
+  return error();
 }
 
 }

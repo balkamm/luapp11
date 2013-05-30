@@ -66,7 +66,7 @@ class error {
   error(const error&) = default;
 
   enum class type {
-    none = 0, runtime = LUA_ERRRUN, memory = LUA_ERRMEM, error = LUA_ERRERR
+    none = 0, runtime = LUA_ERRRUN, memory = LUA_ERRMEM, error = LUA_ERRERR, syntax = LUA_ERRSYNTAX
   };
 
   const type error_type() const { return type_; }
@@ -93,5 +93,6 @@ class error {
   friend class val;
   friend class root;
   template <typename T> friend class result;
+  friend error do_chunk(const std::string& str);
 };
 }
