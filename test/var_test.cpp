@@ -139,6 +139,17 @@ TEST_CASE("var_test/do_chunk", "do_chunk test") {
   CHECK((bool)err2);
 }
 
+TEST_CASE("var_test/do_file", "do_file test") {
+  auto node = root["test"];
+  auto err = node.do_file("../test/lua/test.lua");
+  CHECK(!(bool)err);
+  CHECK(node.get<int>() == 5*4*3*2*1);
+
+  auto node2 = root["test2"];
+  auto err2 = node2.do_chunk("../test/lua/fails.lua");
+  CHECK((bool)err2);
+}
+
 TEST_CASE("var_test/operator()", "operator() test") {
   auto func = root["func"];
   func.do_chunk(
