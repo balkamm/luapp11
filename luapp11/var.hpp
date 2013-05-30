@@ -94,7 +94,10 @@ class var {
     if(err != 0) {
       return error(err, "Unable to load chunk.", L);
     }
-    lua_pcall(L, 0, 1, 0);
+    err = lua_pcall(L, 0, 1, 0);
+    if(err != 0) {
+      return error(err, "Unable to run chunk.", L);
+    }
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return error();
   }
