@@ -148,7 +148,7 @@ TEST_CASE("var_test/operator()", "operator() test") {
     end
     )PREFIX");
   CHECK_NOTHROW(func());
-  CHECK_THROWS(root["foo"]);
+  CHECK_THROWS(root["foo"]());
 }
 
 TEST_CASE("var_test/invoke", "invoke test") {
