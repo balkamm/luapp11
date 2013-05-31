@@ -30,6 +30,7 @@ class val {
   val(const char* s) : type_ { type::string }
   , str { s }
   {}
+
   val(void* lud) : type_ { type::lightuserdata }
   , ptr { lud }
   {}
@@ -163,6 +164,7 @@ class val {
  public:
   static val nil() { return val(); }
   typedef std::unordered_map<val, val, valueHasher> table_type;
+  typedef std::function<lua_Cfunction> function_type;
  private:
   enum class type : int {
     none = LUA_TNONE,
@@ -214,6 +216,22 @@ class val {
   , str { str.c_str() }
   {}
 
+  template <typename TRet, typename ... TArgs> class caller {
+    static int call(lua_State* L) {
+      int nargs = lua_gettop(L) - 1;
+      if(nargs != sizeof...(TArgs)) {
+        throw exception("C++ function invoked with the wrong number of arguments.");
+      }
+      void* enclosed_func = lua_touserdata(L, 1);
+      auto func = *dynamic_cast<std::function<TRet(TArgs...)>*>(enclosed);
+      func(get_arg<TArgs>(L)...)
+    }
+    static void push_closure(lua_State* L, std::function<TRet(TArgs...)>* func) {
+      lua_pushlightuserdata(func);
+      lua_pushclosure(L, &call, 1);
+    }
+  };
+
   // Puts on the top of the stack -0, +1, -
   virtual void push(lua_State* L) const {
     switch (type_) {
@@ -238,7 +256,10 @@ class val {
         }
         break;
       }
-        // case type::function: lua_pushcfunction(s, func); break;
+      case type::cfunction: {
+        lua_pushcfunction(s, func);
+        break;
+      }
         // case type::Userdata: {
         //  auto data = lua_newuserdata(s, userData.Size);
         //  std::copy(userData.Data, userData.Data[userData.Size], data);
@@ -476,7 +497,7 @@ class val {
     bool boolean;
     lua_Number num;
     const char* str;
-    std::function<int(lua_State*)> func;
+    function_type func;
     lua_State* thread;
     // UD userData;
     std::shared_ptr<table_type> table;
