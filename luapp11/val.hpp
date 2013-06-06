@@ -216,22 +216,6 @@ class val {
   , str { str.c_str() }
   {}
 
-  template <typename TRet, typename ... TArgs> class caller {
-    static int call(lua_State* L) {
-      int nargs = lua_gettop(L) - 1;
-      if(nargs != sizeof...(TArgs)) {
-        throw exception("C++ function invoked with the wrong number of arguments.");
-      }
-      void* enclosed_func = lua_touserdata(L, 1);
-      auto func = *dynamic_cast<std::function<TRet(TArgs...)>*>(enclosed);
-      func(get_arg<TArgs>(L)...)
-    }
-    static void push_closure(lua_State* L, std::function<TRet(TArgs...)>* func) {
-      lua_pushlightuserdata(func);
-      lua_pushclosure(L, &call, 1);
-    }
-  };
-
   // Puts on the top of the stack -0, +1, -
   virtual void push(lua_State* L) const {
     switch (type_) {
@@ -484,6 +468,23 @@ class val {
     static std::tuple<TArgs ...> get(lua_State* L, int idx) {
       stack_popper p(idx);
       return std::tuple<TArgs ...>(p.get<TArgs>(L) ...);
+    }
+  };
+
+  template <typename TRet, typename ... TArgs> class caller {
+    static int call(lua_State* L) {
+      int nargs = lua_gettop(L) - 1;
+      if(nargs != sizeof...(TArgs)) {
+        throw exception("C++ function invoked with the wrong number of arguments.");
+      }
+      void* enclosed_func = lua_touserdata(L, 1);
+      auto func = *dynamic_cast<std::function<TRet(TArgs...)>*>(enclosed);
+      stack_popper p(-nargs);
+      func(p.get<TArgs>(L)...);
+    }
+    static void push_closure(lua_State* L, std::function<TRet(TArgs...)>* func) {
+      lua_pushlightuserdata(func);
+      lua_pushcclosure(L, &call, 1);
     }
   };
 
