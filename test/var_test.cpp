@@ -131,23 +131,23 @@ TEST_CASE("var_test/equality", "equality tests") {
 TEST_CASE("var_test/do_chunk", "do_chunk test") {
   auto node = root["test"];
   auto err = node.do_chunk("return 15");
-  CHECK(!(bool)err);
+  CHECK(!(bool) err);
   CHECK(node.get<int>() == 15);
 
   auto node2 = root["test2"];
   auto err2 = node2.do_chunk("Invalid LUA;;");
-  CHECK((bool)err2);
+  CHECK((bool) err2);
 }
 
 TEST_CASE("var_test/do_file", "do_file test") {
   auto node = root["test"];
   auto err = node.do_file("../test/lua/test.lua");
-  CHECK(!(bool)err);
-  CHECK(node.get<int>() == 5*4*3*2*1);
+  CHECK(!(bool) err);
+  CHECK(node.get<int>() == 5 * 4 * 3 * 2 * 1);
 
   auto node2 = root["test2"];
   auto err2 = node2.do_chunk("../test/lua/fails.lua");
-  CHECK((bool)err2);
+  CHECK((bool) err2);
 }
 
 TEST_CASE("var_test/operator()", "operator() test") {
@@ -174,4 +174,20 @@ TEST_CASE("var_test/invoke", "invoke test") {
   CHECK(result.success());
   CHECK(result.value() == 12);
   CHECK_THROWS(root["foo"].invoke<int>());
+
+  auto func2 = root["func2"];
+  func2.do_chunk(
+      R"PREFIX(
+    return function (i)
+      return i + 5, "foo"
+    end
+    )PREFIX");
+  try {
+    auto result2 = func2.invoke<std::tuple<int, std::string>>(7);
+    CHECK(result2.success());
+    CHECK(result2.value() == std::make_tuple(12, "foo"));
+  }
+  catch (exception e) {
+    std::cout << e << std::endl;
+  }
 }

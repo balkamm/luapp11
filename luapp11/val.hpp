@@ -179,60 +179,62 @@ class val {
         chunk = 11,
   };
 
-  val(lua_State* s, type t) : type_(t) {
+  val(lua_State* L, type t, int idx) : type_(t) {
     switch (t) {
       case type::number:
-        num = lua_tonumber(s, -1);
+        num = lua_tonumber(L, idx);
         break;
       case type::boolean:
-        boolean = lua_toboolean(s, -1);
+        boolean = lua_toboolean(L, idx);
         break;
       case type::string:
-        str = lua_tostring(s, -1);
+        str = lua_tostring(L, idx);
         break;
       case type::nil:
         ptr = nullptr;
         break;
       case type::table:
-        throw luapp11::exception("not totally sure what to do...", s);
+        throw luapp11::exception("not totally sure what to do...", L);
       case type::thread:
-        thread = lua_tothread(s, -1);
+        thread = lua_tothread(L, idx);
         break;
       case type::lightuserdata:
-        ptr = const_cast<void*>(lua_topointer(s, -1));
+        ptr = const_cast<void*>(lua_topointer(L, idx));
         break;
       default:
-        throw luapp11::exception("Bad Type.", s);
+        throw luapp11::exception("Bad Type.", L);
     }
   }
 
-  val(lua_State* s) : val(s, (type) lua_type(s, -1)) {}
+  val(lua_State* L, type t) : val(L, t, -1) {}
+  val(lua_State* L, int idx) : val(L, (type) lua_type(L, idx), idx) {}
+  val(lua_State* L) : val(L, (type) lua_type(L, -1), -1) {}
 
   val(const std::string& str, type t) : type_ { t }
   , str { str.c_str() }
   {}
 
   // Puts on the top of the stack -0, +1, -
-  virtual void push(lua_State* s) const {
+  virtual void push(lua_State* L) const {
     switch (type_) {
       case type::nil:
-        lua_pushnil(s);
+        lua_pushnil(L);
         break;
       case type::number:
-        lua_pushnumber(s, num);
+        lua_pushnumber(L, num);
         break;
       case type::boolean:
-        lua_pushboolean(s, boolean);
+        lua_pushboolean(L, boolean);
         break;
       case type::string:
-        lua_pushstring(s, str);
+        lua_pushstring(L, str);
         break;
       case type::table: {
-        lua_newtable(s);
+        lua_newtable(L);
         for (auto p : *table) {
-          p.first.push(s);
-          p.second.push(s);
-          lua_settable(s, -3);
+          p.first.push(L);
+          p.second.push(L);
+          lua_settable(L, -3);
         }
         break;
       }
@@ -246,18 +248,21 @@ class val {
         lua_pushthread(thread);
         break;
       case type::lightuserdata:
-        lua_pushlightuserdata(s, ptr);
+        lua_pushlightuserdata(L, ptr);
         break;
       case type::chunk:
-        luaL_loadstring(s, str);
+        luaL_loadstring(L, str);
         break;
       default:
-        throw luapp11::exception("Bad Type.", s);
+        throw luapp11::exception("Bad Type.", L);
     }
   }
 
   template <typename T, class Enable = void> struct get_number {
-    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
+    static T get(const val& v) {
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a number");
+    }
   };
 
   template <typename T>
@@ -277,7 +282,10 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_boolean {
-    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
+    static T get(const val& v) {
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a boolean");
+    }
   };
 
   template <typename T>
@@ -287,7 +295,10 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_string {
-    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
+    static T get(const val& v) {
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a string");
+    }
   };
 
   template <typename T>
@@ -353,7 +364,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_nil {
     static T get(const val& v) {
-      throw luapp11::exception("get_nil: Invalid Type Error");
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a nil");
     }
   };
 
@@ -370,7 +382,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_table {
     static T get(const val& v) {
-      throw luapp11::exception("get_table: Invalid Type Error");
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a table");
     }
   };
 
@@ -381,7 +394,10 @@ class val {
   };
 
   template <typename T, class Enable = void> struct get_function {
-    static T get(const val& v) { throw luapp11::exception("Invalid Type Error"); }
+    static T get(const val& v) {
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not a function");
+    }
   };
 
   template <typename T>
@@ -420,18 +436,33 @@ class val {
   };
 
   template <typename T, class Enable = void> struct popper {
-    static T pop(lua_State* L) { return val(L).get<T>(); }
+    static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
   };
 
   template <typename T>
   struct popper<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
-    static val pop(lua_State* L) { return val(L); }
+    static val get(lua_State* L, int idx = -1) { return val(L, idx); }
+  };
+
+  struct stack_popper {
+    stack_popper(int start) : idx { start }
+    {}
+
+    template <typename T> T get(lua_State* L) {
+      auto ret = val::popper<T>::get(L, idx);
+      idx++;
+      return ret;
+    }
+
+   private:
+    int idx;
   };
 
   template <typename ... TArgs>
-  struct popper<std::tuple<TArgs ...>, std::enable_if<true>> {
-    static std::tuple<TArgs ...> pop(lua_State* L) {
-      return std::tuple<TArgs ...>(popper<TArgs>(L) ...);
+  struct popper<std::tuple<TArgs ...>, std::enable_if<true>::type> {
+    static std::tuple<TArgs ...> get(lua_State* L, int idx) {
+      stack_popper p(idx);
+      return std::tuple<TArgs ...>(p.get<TArgs>(L) ...);
     }
   };
 

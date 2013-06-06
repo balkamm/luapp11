@@ -73,6 +73,7 @@ class var {
 
   template <typename TOut, typename ... TArgs>
   result<TOut> invoke(TArgs ... args) {
+    stack_guard g(L);
     if (dirty_is<TOut(TArgs ...)>()) {
       val::push_all<TArgs ...>(L, args ...);
       return caller<TOut>::pcall(L, sizeof ...(TArgs));
@@ -81,6 +82,7 @@ class var {
   }
 
   template <typename TOut> result<TOut> invoke() {
+    stack_guard g(L);
     if (dirty_is<TOut()>()) {
       return caller<TOut>::pcall(L, 0);
     }
@@ -91,11 +93,11 @@ class var {
     stack_guard g(L);
     push_parent_key();
     auto err = luaL_loadstring(L, str.c_str());
-    if(err != 0) {
+    if (err != 0) {
       return error(err, "Unable to load chunk.", L);
     }
     err = lua_pcall(L, 0, 1, 0);
-    if(err != 0) {
+    if (err != 0) {
       return error(err, "Unable to run chunk.", L);
     }
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
@@ -106,11 +108,11 @@ class var {
     stack_guard g(L);
     push_parent_key();
     auto err = luaL_loadfile(L, path.c_str());
-    if(err != 0) {
+    if (err != 0) {
       return error(err, "Unable to load file.", L);
     }
     err = lua_pcall(L, 0, 1, 0);
-    if(err != 0) {
+    if (err != 0) {
       return error(err, "Unable to run file.", L);
     }
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
@@ -142,14 +144,14 @@ class var {
   template <typename T, class Enable = void> struct caller {
     static result<T> call(lua_State* L, int nargs) {
       lua_call(L, nargs, 1);
-      return val::popper<T>::pop(L);
+      return val::popper<T>::get(L, -1);
     }
     static result<T> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, 1, 0);
       if (err) {
         return error(err, "Error calling lua method.", L);
       }
-      return val::popper<T>::pop(L);
+      return val::popper<T>::get(L, -1);
     }
   };
 
@@ -172,14 +174,14 @@ class var {
   struct caller<std::tuple<TArgs ...>, std::enable_if<true>::type> {
     static result<std::tuple<TArgs ...>> call(lua_State* L, int nargs) {
       lua_call(L, nargs, sizeof ...(TArgs));
-      return result<std::tuple<TArgs ...>>();
+      return val::popper<std::tuple<TArgs ...>>::get(L, (int)sizeof ...(TArgs) * -1);
     }
     static result<std::tuple<TArgs ...>> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, sizeof ...(TArgs), 0);
       if (err) {
-        return error(err, "Error calling lua method", L);
+        return error(err, "Error calling lua method.", L);
       }
-      return result<std::tuple<TArgs ...>>();
+      return val::popper<std::tuple<TArgs ...>>::get(L, (int)sizeof ...(TArgs) * -1);
     }
   };
 

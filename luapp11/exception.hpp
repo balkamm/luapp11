@@ -11,6 +11,10 @@ class exception : public std::exception {
 
   const std::string& stack() const { return stack_; }
 
+  friend std::ostream& operator<<(std::ostream& out, const exception& e) {
+    return out << "luapp11 Exception: " << e.what() << std::endl << e.stack_
+               << std::endl;
+  }
  private:
   exception(std::string what) : what_(what), stack_() {}
 
@@ -25,24 +29,26 @@ class exception : public std::exception {
 
     const int top = lua_gettop(L);
     for (int i = 1; i <= top; i++) {
-      ss << lua_typename(L, i);
       switch (lua_type(L, i)) {
         case LUA_TSTRING:
-          ss << ": " << lua_tostring(L, i) << std::endl;
+          ss << "string: " << lua_tostring(L, i) << std::endl;
           break;
         case LUA_TNUMBER:
-          ss << ": " << lua_tonumber(L, i) << std::endl;
+          ss << "number: " << lua_tonumber(L, i) << std::endl;
           break;
         case LUA_TBOOLEAN:
-          ss << ": " << (lua_toboolean(L, i) ? "true" : "false") << std::endl;
+          ss << "boolean: " << (lua_toboolean(L, i) ? "true" : "false")
+             << std::endl;
           break;
         case LUA_TUSERDATA:
         case LUA_TLIGHTUSERDATA:
-          ss << ": " << lua_topointer(L, i) << std::endl;
+          ss << "userdata: " << lua_topointer(L, i) << std::endl;
           break;
-        case LUA_TTHREAD:
+        case LUA_TFUNCTION:
+          ss << "function" << std::endl;
+          break;
         default:
-          ss << std::endl;
+          ss << lua_typename(L, i) << std::endl;
           break;
       }
     }
