@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include "internal/traits.hpp"
+
 namespace luapp11 {
 
 /**
@@ -31,7 +33,7 @@ class var {
    */
   template <typename T> T get() const { return get_value().get<T>(); }
 
-   /**
+  /**
     * Checks if the value at this place in the lua environment can be converted to the specified type.
     * @typename T The type to check.
     * @return     true if the value can be converted false otherwise.
@@ -78,7 +80,8 @@ class var {
   template <typename T> var& operator=(const T & toSet) {
     stack_guard g(L);
     push_parent_key();
-    val::pusher<typename convert_functor_to_std_function<T>::type>::push(L,
+    val::pusher<
+        typename detail::convert_functor_to_std_function<T>::type>::push(L,
                                                                          toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
@@ -182,7 +185,9 @@ class var {
     return error();
   }
 
- protected:
+ private:
+
+  // Pushing
   void push_parent_key() const {
     bool first;
     for (auto& l : lineage_) {
@@ -199,11 +204,58 @@ class var {
     lua_gettable(L, lineage_.size() == 1 ? virtual_index_ : -2);
   }
 
+  // Is checking
   template <typename T> bool dirty_is() const {
     push();
     return typed_is<T>::is(L);
   }
 
+  template <typename T, class Enable = void> struct typed_is {
+    static inline bool is(lua_State* L) { return false; }
+  };
+
+  template <typename T>
+  struct typed_is<T,
+                  typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) &&
+             (lua_isboolean(L, -1) || lua_isnumber(L, -1));
+    }
+  };
+
+  template <typename T>
+  struct typed_is<
+      T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) && lua_isstring(L, -1);
+    }
+  };
+
+  template <typename T>
+  struct typed_is<
+      T, typename std::enable_if<std::is_same<T, const char*>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) && lua_isstring(L, -1);
+    }
+  };
+
+  template <typename T>
+  struct typed_is<T,
+                  typename std::enable_if<std::is_function<T>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) && lua_isfunction(L, -1);
+    }
+  };
+
+  template <typename T>
+  struct typed_is<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) && lua_islightuserdata(L, -1);
+    }
+  };
+
+
+  // Invoking
   template <typename T, class Enable = void> struct caller {
     static result<T> call(lua_State* L, int nargs) {
       lua_call(L, nargs, 1);
@@ -250,81 +302,8 @@ class var {
     }
   };
 
-  template <typename T, class Enable = void>
-  struct remove_function_ptr_member_type {
-    typedef T type;
-  };
 
-  template <typename TOut, typename T, typename ... TArgs>
-  struct remove_function_ptr_member_type<TOut(T::*)(TArgs ...),
-                                         std::enable_if<true>::type> {
-    typedef TOut(type)(TArgs ...);
-  };
-
-  template <typename TOut, typename T, typename ... TArgs>
-  struct remove_function_ptr_member_type<TOut(T::*)(TArgs ...) const,
-                                         std::enable_if<true>::type> {
-    typedef TOut(type)(TArgs ...);
-  };
-
-  template <typename T, class Enable = void>
-  struct convert_functor_to_std_function {
-    typedef T type;
-  };
-
-  template <typename T>
-  struct convert_functor_to_std_function<
-      T,
-      typename std::enable_if<std::is_member_function_pointer<
-          decltype(&T::operator())>::value>::type> {
-    typedef std::function<typename remove_function_ptr_member_type<
-        decltype(&T::operator())>::type> type;
-  };
-
-  template <typename T, class Enable = void> struct typed_is {
-    static inline bool is(lua_State* L) { return false; }
-  };
-
-  template <typename T>
-  struct typed_is<T,
-                  typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-    static inline bool is(lua_State* L) {
-      return !lua_isnoneornil(L, -1) &&
-             (lua_isboolean(L, -1) || lua_isnumber(L, -1));
-    }
-  };
-
-  template <typename T>
-  struct typed_is<
-      T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-    static inline bool is(lua_State* L) {
-      return !lua_isnoneornil(L, -1) && lua_isstring(L, -1);
-    }
-  };
-
-  template <typename T>
-  struct typed_is<
-      T, typename std::enable_if<std::is_same<T, const char*>::value>::type> {
-    static inline bool is(lua_State* L) {
-      return !lua_isnoneornil(L, -1) && lua_isstring(L, -1);
-    }
-  };
-
-  template <typename T>
-  struct typed_is<T,
-                  typename std::enable_if<std::is_function<T>::value>::type> {
-    static inline bool is(lua_State* L) {
-      return !lua_isnoneornil(L, -1) && lua_isfunction(L, -1);
-    }
-  };
-
-  template <typename T>
-  struct typed_is<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
-    static inline bool is(lua_State* L) {
-      return !lua_isnoneornil(L, -1) && lua_islightuserdata(L, -1);
-    }
-  };
-
+  // Private Constructors
   var(lua_State* L, int virtual_index, val key) : L { L }
   , virtual_index_ { virtual_index }
   { lineage_.push_back(key); }

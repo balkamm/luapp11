@@ -157,6 +157,8 @@ class val {
         break;
     }
   }
+  static val nil() { return val(); }
+
  private:
   class valueHasher {
    public:
@@ -165,10 +167,11 @@ class val {
       return hasher(v.num);
     }
   };
+
  public:
-  static val nil() { return val(); }
   typedef std::unordered_map<val, val, valueHasher> table_type;
   typedef std::function<lua_CFunction> function_type;
+
  private:
   enum class type : int {
     none = LUA_TNONE,
@@ -178,13 +181,13 @@ class val {
     string = LUA_TSTRING,
     table = LUA_TTABLE,
     lua_function = LUA_TFUNCTION,
-    // Userdata = LUA_TUSERDATA,
-        thread = LUA_TTHREAD,
-        lightuserdata = LUA_TLIGHTUSERDATA,
-        c_function = 10,
-        chunk = 11,
+    userdata = LUA_TUSERDATA,
+    thread = LUA_TTHREAD,
+    lightuserdata = LUA_TLIGHTUSERDATA,
   };
 
+
+  // Private Constructors
   val(lua_State* L, type t, int idx) : type_(t) {
     switch (t) {
       case type::number:
@@ -219,6 +222,7 @@ class val {
   val(const std::string& str, type t) : type_ { t }
   , str { str.c_str() }
   {}
+
 
   // Puts on the top of the stack -0, +1, -
   virtual void push(lua_State* L) const {
@@ -267,6 +271,8 @@ class val {
     }
   }
 
+
+  // Getting
   template <typename T, class Enable = void> struct get_number {
     static T get(const val& v) {
       throw luapp11::exception(std::string("Invalid Type Error: ") +
@@ -422,21 +428,12 @@ class val {
     static T* get(const val& v) { return (T*)v.ptr; }
   };
 
-  template <typename TArg, typename ... TArgs>
-  static int push_all(lua_State* L, TArg a, TArgs ... args) {
-    pusher<TArg>::push(L, a);
-    return 1 + push_all(L, args ...);
-  }
-
-  template <typename TArg> static int push_all(lua_State* L, TArg a) {
-    pusher<TArg>::push(L, a);
-    return 1;
-  }
-
   template <typename T, class Enable = void> struct popper {
     static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
   };
 
+
+  // Popping
   template <typename T>
   struct popper<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
     static val get(lua_State* L, int idx = -1) { return val(L, idx); }
@@ -464,6 +461,8 @@ class val {
     }
   };
 
+
+  // Counting
   template <typename T, class Enable = void> struct counter {
     static int count() { return 1; }
   };
@@ -478,6 +477,19 @@ class val {
   struct counter<std::tuple<TArgs ...>, std::enable_if<true>::type> {
     static int count() { return sizeof ...(TArgs); }
   };
+
+
+  // Pushing
+  template <typename TArg, typename ... TArgs>
+  static int push_all(lua_State* L, TArg a, TArgs ... args) {
+    pusher<TArg>::push(L, a);
+    return 1 + push_all(L, args ...);
+  }
+
+  template <typename TArg> static int push_all(lua_State* L, TArg a) {
+    pusher<TArg>::push(L, a);
+    return 1;
+  }
 
   template <typename T, class Enable = void> struct pusher {
     static void push(lua_State* L, const T&) {
@@ -637,17 +649,6 @@ class val {
     }
   };
 
-  // template <typename T>
-  // struct pusher<T,std::conditional<!is_std_function<T>::value,
-  //               typename std::enable_if<std::is_member_function_pointer<decltype(&T::operator())>::value>::type,
-  //               typename std::enable_if<is_std_function<T>::value>::type>> {
-  //   static void push(lua_State* L, const T& v) {
-  //     typedef std::function<typename remove_function_ptr_member_type<
-  //         decltype(&T::operator())>::type> f_type;
-  //     pusher<f_type>::push(L, v);
-  //   }
-  // };
-
   template <typename TRet, typename ... TArgs>
   struct pusher<TRet(*)(TArgs ...), std::enable_if<true>::type> {
     typedef TRet(*f_type)(TArgs ...);
@@ -768,6 +769,8 @@ class val {
     }
   };
 
+
+  // Member variables
   struct UD {
     size_t Size;
     void* Data;
