@@ -637,6 +637,17 @@ class val {
     }
   };
 
+  // template <typename T>
+  // struct pusher<T,std::conditional<!is_std_function<T>::value,
+  //               typename std::enable_if<std::is_member_function_pointer<decltype(&T::operator())>::value>::type,
+  //               typename std::enable_if<is_std_function<T>::value>::type>> {
+  //   static void push(lua_State* L, const T& v) {
+  //     typedef std::function<typename remove_function_ptr_member_type<
+  //         decltype(&T::operator())>::type> f_type;
+  //     pusher<f_type>::push(L, v);
+  //   }
+  // };
+
   template <typename TRet, typename ... TArgs>
   struct pusher<TRet(*)(TArgs ...), std::enable_if<true>::type> {
     typedef TRet(*f_type)(TArgs ...);

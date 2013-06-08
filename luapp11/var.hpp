@@ -48,7 +48,8 @@ class var {
   template <typename T> var& operator=(const T & toSet) {
     stack_guard g(L);
     push_parent_key();
-    val::pusher<T>::push(L, toSet);
+    val::pusher<typename convert_functor_to_std_function<T>::type>::push(L,
+                                                                         toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -186,6 +187,38 @@ class var {
           L, (int) sizeof ...(TArgs) * -1);
     }
   };
+
+  template <typename T, class Enable = void>
+  struct remove_function_ptr_member_type {
+    typedef T type;
+  };
+
+  template <typename TOut, typename T, typename ... TArgs>
+  struct remove_function_ptr_member_type<TOut(T::*)(TArgs ...),
+                                         std::enable_if<true>::type> {
+    typedef TOut(type)(TArgs ...);
+  };
+
+  template <typename TOut, typename T, typename ... TArgs>
+  struct remove_function_ptr_member_type<TOut(T::*)(TArgs ...) const,
+                                         std::enable_if<true>::type> {
+    typedef TOut(type)(TArgs ...);
+  };
+
+  template <typename T, class Enable = void>
+  struct convert_functor_to_std_function {
+    typedef T type;
+  };
+
+  template <typename T>
+  struct convert_functor_to_std_function<
+      T,
+      typename std::enable_if<std::is_member_function_pointer<
+          decltype(&T::operator())>::value>::type> {
+    typedef std::function<typename remove_function_ptr_member_type<
+        decltype(&T::operator())>::type> type;
+  };
+
 
   template <typename T, class Enable = void> struct typed_is {
     static inline bool is(lua_State* L) { return false; }
