@@ -182,12 +182,39 @@ TEST_CASE("var_test/invoke", "invoke test") {
       return i + 5, "foo"
     end
     )PREFIX");
-  try {
-    auto result2 = func2.invoke<std::tuple<int, std::string>>(7);
-    CHECK(result2.success());
-    CHECK(result2.value() == std::make_tuple(12, "foo"));
+  auto result2 = func2.invoke<std::tuple<int, std::string>>(7);
+  CHECK(result2.success());
+  CHECK(result2.value() == std::make_tuple(12, "foo"));
+}
+
+int add(int a, int b) { return a + b; }
+
+TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
+  root["plusser"] = &add;
+  auto func = root["func"];
+  func.do_chunk(
+      R"PREFIX(
+    return function (i)
+      return plusser(i, 5)
+    end
+    )PREFIX");
+  auto result = func.invoke<int>(7);
+  if(!result.success()) {
+    std::cout << result.error() << std::endl;
   }
-  catch (exception e) {
-    std::cout << e << std::endl;
-  }
+  CHECK(result.success());
+  CHECK(result.value() == 12);
+
+  root["lambda"] = [](int a, int b) { return a + b; }
+  ;
+  auto func2 = root["func2"];
+  func2.do_chunk(
+      R"PREFIX(
+    return function (i)
+      return lambda(i, 5);
+    end
+    )PREFIX");
+  auto result2 = func2.invoke<int>(7);
+  CHECK(result2.success());
+  CHECK(result2.value() == 12);
 }
