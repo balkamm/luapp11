@@ -6,32 +6,57 @@
 
 namespace luapp11 {
 
+/**
+ * A lua "variable".  A specific place in the lua environment which can be read from and assigned to.
+ */
 class var {
  public:
   var(const var& other) = default;
   var(var && other) = default;
 
-  // Gets the value of the var
+  /**
+   * Gets the value from this place in the lua environment.
+   * @return The value found there.
+   */
   val get_value() const {
     stack_guard g(L);
     push();
     return val(L);
   }
 
-  // Gets the value of the var typed
+  /**
+   * Gets the value from this place in the lua environment.
+   * @typename T The type to get.
+   * @return     The value found there.
+   */
   template <typename T> T get() const { return get_value().get<T>(); }
 
+   /**
+    * Checks if the value at this place in the lua environment can be converted to the specified type.
+    * @typename T The type to check.
+    * @return     true if the value can be converted false otherwise.
+    */
   template <typename T> bool is() const {
     stack_guard g(L);
     return dirty_is<T>();
   }
 
+  /**
+   * Gets the value from this place in the lua environment.  Returns the default value if unable to convert to the requested type.
+   * @typename T        The type to get.
+   * @param    fallback The value to return if type convertion fails.
+   * @return            The value found there, or the default value if conversion fails.
+   */
   template <typename T> T as(T && fallback) {
     stack_guard g(L);
     return dirty_is<T>() ? val(L).get<T>() : fallback;
   }
 
-  // Assigns the var with another var
+  /**
+   * Assigns the value at one place in thet lua environment to another.
+   * @var    The location to assign from.
+   * @return The location assigned to.
+   */
   var& operator=(const var & var) {
     stack_guard g(L);
     push_parent_key();
@@ -45,6 +70,11 @@ class var {
     return *this;
   }
 
+  /**
+   * Assigns a value to this place in the lua environment.
+   * @param  toSet  The value to assign.
+   * @return        The location assigned to.
+   */
   template <typename T> var& operator=(const T & toSet) {
     stack_guard g(L);
     push_parent_key();
@@ -54,6 +84,9 @@ class var {
     return *this;
   }
 
+  /**
+   * Checks if two vars point to the same place in the lua environment.
+   */
   bool operator==(const var& other) {
     return L == other.L && virtual_index_ == other.virtual_index_ &&
            lineage_.size() == other.lineage_.size() &&
@@ -64,14 +97,33 @@ class var {
 
   bool operator!=(const var& other) { return !(operator==(other)); }
 
+  /**
+   * Get a child of this location in the lua environment.
+   * @param  idx  The index to get.
+   * @return      A var which points to the child of this location at index idx.
+   */
   var operator[](val idx) { return var(*this, idx); }
 
+  /**
+   * Get a child of this location in the lua environment.
+   * @param  idx  The location of the index to get.
+   * @return      A var which points to the child of this location at index idx.
+   */
   var operator[](var idx) { return var(*this, idx.get_value()); }
 
+  /**
+   * Attempt to call the function at this location in the lua environment.
+   * @param args  The arguments to the call
+   */
   template <typename ... TArgs> result<void> operator()(TArgs ... args) {
     return invoke<void>(args ...);
   }
 
+  /**
+   * Attempt to call the function at this location in the lua environment.  Can return a value.
+   * @param args  The arguments to the call
+   * @return      The result of the invocation.
+   */
   template <typename TOut, typename ... TArgs>
   result<TOut> invoke(TArgs ... args) {
     stack_guard g(L);
@@ -90,6 +142,11 @@ class var {
     throw exception("Tried to invoke non-function.", L);
   }
 
+  /**
+   * Execute a string as lua.  Assigns it's return value to this location in the lua environment.
+   * @param  str The lua code to execute.
+   * @return     The error (if any) which occured while executing.
+   */
   error do_chunk(const std::string& str) {
     stack_guard g(L);
     push_parent_key();
@@ -105,6 +162,11 @@ class var {
     return error();
   }
 
+  /**
+   * Execute a lua file.  Assigns it's return value to this location in the lua environment.
+   * @param  path The location of the file on disk.
+   * @return      The error (if any) which occured while executing.
+   */
   error do_file(const std::string& path) {
     stack_guard g(L);
     push_parent_key();
@@ -218,7 +280,6 @@ class var {
     typedef std::function<typename remove_function_ptr_member_type<
         decltype(&T::operator())>::type> type;
   };
-
 
   template <typename T, class Enable = void> struct typed_is {
     static inline bool is(lua_State* L) { return false; }
