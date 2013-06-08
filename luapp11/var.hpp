@@ -45,10 +45,10 @@ class var {
     return *this;
   }
 
-  var& operator=(const val & val) {
+  template <typename T> var& operator=(const T & toSet) {
     stack_guard g(L);
     push_parent_key();
-    val.push(L);
+    val::pusher<T>::push(L, toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -174,14 +174,16 @@ class var {
   struct caller<std::tuple<TArgs ...>, std::enable_if<true>::type> {
     static result<std::tuple<TArgs ...>> call(lua_State* L, int nargs) {
       lua_call(L, nargs, sizeof ...(TArgs));
-      return val::popper<std::tuple<TArgs ...>>::get(L, (int)sizeof ...(TArgs) * -1);
+      return val::popper<std::tuple<TArgs ...>>::get(
+          L, (int) sizeof ...(TArgs) * -1);
     }
     static result<std::tuple<TArgs ...>> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, sizeof ...(TArgs), 0);
       if (err) {
         return error(err, "Error calling lua method.", L);
       }
-      return val::popper<std::tuple<TArgs ...>>::get(L, (int)sizeof ...(TArgs) * -1);
+      return val::popper<std::tuple<TArgs ...>>::get(
+          L, (int) sizeof ...(TArgs) * -1);
     }
   };
 

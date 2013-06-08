@@ -4,7 +4,11 @@
 #include "luapp11/exception.hpp"
 #include <memory>
 #include <utility>
+#include <map>
 #include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <vector>
 #include <cstring>
 #include <sstream>
 
@@ -164,7 +168,7 @@ class val {
  public:
   static val nil() { return val(); }
   typedef std::unordered_map<val, val, valueHasher> table_type;
-  typedef std::function<lua_Cfunction> function_type;
+  typedef std::function<lua_CFunction> function_type;
  private:
   enum class type : int {
     none = LUA_TNONE,
@@ -240,10 +244,10 @@ class val {
         }
         break;
       }
-      case type::cfunction: {
-        lua_pushcfunction(s, func);
-        break;
-      }
+        // case type::cfunction: {
+        //   lua_pushcfunction(s, func);
+        //   break;
+        // }
         // case type::Userdata: {
         //  auto data = lua_newuserdata(s, userData.Size);
         //  std::copy(userData.Data, userData.Data[userData.Size], data);
@@ -405,11 +409,11 @@ class val {
     }
   };
 
-  template <typename T>
-  struct get_function<
-      T, typename std::enable_if<std::is_function<T>::value>::type> {
-    static T get(const val& v) { return dynamic_cast<T>(v.func); }
-  };
+  // template <typename T>
+  // struct get_function<
+  //     T, typename std::enable_if<std::is_function<T>::value>::type> {
+  //   static T get(const val& v) { return dynamic_cast<T>(v.func); }
+  // };
 
   template <typename T> struct get_lightuserdata {
     static T get(const val& v) { return *(T*)v.ptr; }
@@ -428,17 +432,6 @@ class val {
     pusher<TArg>::push(L, a);
     return 1;
   }
-
-  template <typename T, class Enable = void> struct pusher {
-    static void push(lua_State* L, T v) { val(v).push(L); }
-  };
-
-  template <typename T>
-  struct pusher<T,
-                typename std::enable_if<std::is_member_function_pointer<
-                    decltype(T::push)>::value>::type> {
-    static void push(lua_State* L, T v) { v.push(L); }
-  };
 
   template <typename T, class Enable = void> struct popper {
     static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
@@ -471,39 +464,261 @@ class val {
     }
   };
 
-  template <typename TRet, typename ... TArgs> class caller {
-    typedef std::function<TRet(TArgs...)> f_type;
+  template <typename T, class Enable = void> struct pusher {
+    static void push(lua_State* L, const T&) {
+      throw exception(std::string("Unable to push type: ") + typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_floating_point<T>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, char>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, char16_t>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, char32_t>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, wchar_t>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, signed char>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, short int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, long int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, long long int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, unsigned char>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, unsigned short int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, unsigned int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, unsigned long int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+  template <typename T>
+  struct pusher<T,
+                typename std::enable_if<std::is_same<T, unsigned long long int>::value>::type> {
+    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
+  };
+
+
+  template <typename T>
+  struct pusher<
+      T, typename std::enable_if<std::is_same<T, bool>::value>::type> {
+    static void push(lua_State* L, const T& b) { lua_pushboolean(L, b); }
+  };
+
+  template <typename T>
+  struct pusher<
+      T, typename std::enable_if<std::is_same<T, const char*>::value>::type> {
+    static void push(lua_State* L, const T& str) { lua_pushstring(L, str); }
+  };
+
+  template <typename T>
+  struct pusher<
+      T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+    static void push(lua_State* L, const T& str) {
+      lua_pushstring(L, str.c_str());
+    }
+  };
+
+  template <typename T>
+  struct pusher<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
+    static void push(lua_State* L, const T& v) { v.push(L); }
+  };
+
+  template <typename TRet, typename ... TArgs>
+  class pusher<std::function<TRet(TArgs ...)>, std::enable_if<true>::type> {
+    typedef std::function<TRet(TArgs ...)> f_type;
     static int call(lua_State* L) {
       int nargs = lua_gettop(L) - 1;
-      if(nargs != sizeof...(TArgs)) {
-        throw exception("C++ function invoked with the wrong number of arguments.");
+      if (nargs != sizeof ...(TArgs)) {
+        throw exception(
+            "C++ function invoked with the wrong number of arguments.");
       }
       void* ptr = lua_touserdata(L, 1);
       auto func = *static_cast<f_type*>(ptr);
       stack_popper p(-nargs);
-      func(p.get<TArgs>(L)...);
+      func(p.get<TArgs>(L) ...);
     }
 
-    static void push_closure(lua_State* L, f_type* func) {
+    static void push(lua_State* L, f_type* func) {
       lua_pushlightuserdata(L, func);
       lua_pushcclosure(L, &call, 1);
     }
 
     static int deleter(lua_State* L) {
       void* ptr = lua_touserdata(L, -1);
-      auto func = *static_cast<f_type*>(enclosed);
+      auto func = *static_cast<f_type*>(ptr);
       func->~f_type();
     }
 
-    static void push_closure(lua_State* L, f_type& func) {
+    static void push(lua_State* L, f_type func) {
       void* f_data = lua_newuserdata(L, sizeof(f_type));
-      f_type* f = new (f_data)f_type(func);
+      f_type* f = new (f_data) f_type(func);
       lua_newtable(L);
       lua_pushcfunction(L, &deleter);
       lua_setfield(L, -2, "__gc");
       lua_setmetatable(L, -2);
 
       lua_pushcclosure(L, &call, 1);
+    }
+  };
+
+  template <typename TRet, typename ... TArgs>
+  class pusher<TRet * (TArgs ...), std::enable_if<true>::type> {
+    typedef TRet(*f_type)(TArgs ...);
+    static int call(lua_State* L) {
+      int nargs = lua_gettop(L) - 1;
+      if (nargs != sizeof ...(TArgs)) {
+        throw exception(
+            "C++ function invoked with the wrong number of arguments.");
+      }
+      void* ptr = lua_touserdata(L, 1);
+      auto func = static_cast<f_type>(ptr);
+      stack_popper p(-nargs);
+      func(p.get<TArgs>(L) ...);
+    }
+
+    static void push(lua_State* L, f_type* func) {
+      lua_pushlightuserdata(L, func);
+      lua_pushcclosure(L, &call, 1);
+    }
+  };
+
+  template <typename TFrom, typename TTo>
+  struct pusher<std::map<TFrom, TTo>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::map<TFrom, TTo>& map) {
+      lua_newtable(L);
+      for (auto& i : map) {
+        pusher::push(L, i.first);
+        pusher::push(L, i.second);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename TFrom, typename TTo>
+  struct pusher<std::unordered_map<TFrom, TTo>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::unordered_map<TFrom, TTo>& map) {
+      lua_newtable(L);
+      for (auto& i : map) {
+        pusher::push(L, i.first);
+        pusher::push(L, i.second);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename TFrom, typename TTo>
+  struct pusher<std::initializer_list<std::pair<TFrom, TTo>>,
+                std::enable_if<true>::type> {
+    static void push(
+        lua_State* L,
+        const std::initializer_list<std::pair<TFrom, TTo>>& map) {
+      lua_newtable(L);
+      for (auto& i : map) {
+        pusher::push(L, i.first);
+        pusher::push(L, i.second);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename T>
+  struct pusher<std::vector<T>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::vector<T>& vec) {
+      lua_newtable(L);
+      int idx = 0;
+      for (auto& i : vec) {
+        lua_pushnumber(L, ++idx);
+        pusher::push(L, i);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename T>
+  struct pusher<std::initializer_list<T>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::initializer_list<T>& vec) {
+      lua_newtable(L);
+      int idx = 0;
+      for (auto& i : vec) {
+        lua_pushnumber(L, ++idx);
+        pusher::push(L, i);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename T> struct pusher<std::set<T>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::set<T>& set) {
+      lua_newtable(L);
+      int idx = 0;
+      for (auto& i : set) {
+        lua_pushnumber(L, ++idx);
+        pusher::push(L, i);
+        lua_settable(L, -3);
+      }
+    }
+  };
+
+  template <typename T>
+  struct pusher<std::unordered_set<T>, std::enable_if<true>::type> {
+    static void push(lua_State* L, const std::unordered_set<T>& set) {
+      lua_newtable(L);
+      int idx = 0;
+      for (auto& i : set) {
+        lua_pushnumber(L, ++idx);
+        pusher::push(L, i);
+        lua_settable(L, -3);
+      }
     }
   };
 
@@ -517,7 +732,7 @@ class val {
     bool boolean;
     lua_Number num;
     const char* str;
-    function_type func;
+    // function_type func;
     lua_State* thread;
     // UD userData;
     std::shared_ptr<table_type> table;
