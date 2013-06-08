@@ -189,7 +189,6 @@ TEST_CASE("var_test/invoke", "invoke test") {
 
 int add(int a, int b) {
   return a + b;
-  std::cout << "Yo" << std::endl;
 }
 
 TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
