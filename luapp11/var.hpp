@@ -317,7 +317,7 @@ class var {
   std::vector<val> lineage_;
   int virtual_index_;
 
-  friend class root;
+  friend class global;
 };
 
 }

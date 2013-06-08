@@ -3345,7 +3345,7 @@ namespace Catch {
                     "If not otherwise needed, the standard XML reporter is preferred as this is "
                     "a streaming reporter, whereas the Junit reporter needs to hold all its "
                     "results until the end so it can write the overall results into attributes "
-                    "of the root node.";
+                    "of the global node.";
             }
 
             virtual void parseIntoConfig( const Command& cmd, ConfigData& config ) {
@@ -3699,7 +3699,7 @@ namespace Catch {
     public:
 
         enum Status {
-            Root,
+            global,
             Unknown,
             Branch,
             TestedBranch,
@@ -3712,7 +3712,7 @@ namespace Catch {
         {}
 
         SectionInfo()
-        :   m_status( Root ),
+        :   m_status( global ),
             m_parent( NULL )
         {}
 
@@ -3795,7 +3795,7 @@ namespace Catch {
         explicit RunningTest( const TestCaseInfo* info = NULL )
         :   m_info( info ),
             m_runStatus( RanAtLeastOneSection ),
-            m_currentSection( &m_rootSection ),
+            m_currentSection( &m_globalSection ),
             m_changed( false )
         {}
 
@@ -3871,13 +3871,13 @@ namespace Catch {
 
         bool hasUntestedSections() const {
             return  m_runStatus == RanAtLeastOneSection ||
-                    ( m_rootSection.hasUntestedSections() && m_changed );
+                    ( m_globalSection.hasUntestedSections() && m_changed );
         }
 
     private:
         const TestCaseInfo* m_info;
         RunStatus m_runStatus;
-        SectionInfo m_rootSection;
+        SectionInfo m_globalSection;
         SectionInfo* m_currentSection;
         SectionInfo* m_lastSectionToRun;
         bool m_changed;

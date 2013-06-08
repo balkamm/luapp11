@@ -66,7 +66,6 @@ class val {
       case type::thread:
         thread = other.thread;
         break;
-      case type::chunk:
       case type::string:
         str = other.str;
         break;
@@ -147,13 +146,12 @@ class val {
       case type::thread:
         swap(a.thread, b.thread);
         break;
-      case type::chunk:
       case type::string:
         swap(a.str, b.str);
         break;
       case type::none:
       case type::lua_function:
-      case type::c_function:
+      case type::userdata:
         break;
     }
   }
@@ -262,9 +260,6 @@ class val {
         break;
       case type::lightuserdata:
         lua_pushlightuserdata(L, ptr);
-        break;
-      case type::chunk:
-        luaL_loadstring(L, str);
         break;
       default:
         throw luapp11::exception("Bad Type.", L);
@@ -791,7 +786,5 @@ class val {
   friend class var;
   friend val chunk(const std::string& str);
 };
-
-inline val chunk(const std::string& str) { return val(str, val::type::chunk); }
 
 }

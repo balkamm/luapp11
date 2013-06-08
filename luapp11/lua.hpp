@@ -10,4 +10,4 @@ extern "C" {
 #include "luapp11/result.hpp"
 #include "luapp11/val.hpp"
 #include "luapp11/var.hpp"
-#include "luapp11/root.hpp"
+#include "luapp11/global.hpp"
