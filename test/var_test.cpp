@@ -208,8 +208,7 @@ TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
   CHECK(result.success());
   CHECK(result.value() == 12);
 
-  root["lambda"] = [](int a, int b) { return a + b; }
-  ;
+  root["lambda"] = std::function<int(int,int)>([](int a, int b) { return a + b; });
   auto func2 = root["func2"];
   func2.do_chunk(
       R"PREFIX(

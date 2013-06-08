@@ -468,9 +468,15 @@ class val {
     static int count() { return 1; }
   };
 
+  template <typename T>
+  struct counter<T,
+                 typename std::enable_if<std::is_same<T, void>::value>::type> {
+    static int count() { return 0; }
+  };
+
   template <typename ... TArgs>
   struct counter<std::tuple<TArgs ...>, std::enable_if<true>::type> {
-    static int count() { return sizeof...(TArgs); }
+    static int count() { return sizeof ...(TArgs); }
   };
 
   template <typename T, class Enable = void> struct pusher {
@@ -587,16 +593,24 @@ class val {
   struct pusher<std::function<TRet(TArgs ...)>, std::enable_if<true>::type> {
     typedef std::function<TRet(TArgs ...)> f_type;
     static int call(lua_State* L) {
-      int nargs = lua_gettop(L) - 1;
+      int nargs = lua_gettop(L);
       if (nargs != sizeof ...(TArgs)) {
-        throw exception(
-            "C++ function invoked with the wrong number of arguments.");
+        pusher<const char*>::push(
+            L, "C++ function invoked with the wrong number of arguments.");
+        lua_error(L);
       }
-      void* ptr = lua_touserdata(L, 1);
-      auto func = *static_cast<f_type*>(ptr);
+      void* ptr = lua_touserdata(L, lua_upvalueindex(1));
+      auto func = *(f_type*)ptr;
       stack_popper p(-nargs);
-      TRet ret = func(p.get<TArgs>(L) ...);
-      pusher<TRet>::push(ret);
+      try {
+        TRet ret = func(p.get<TArgs>(L) ...);
+        pusher<TRet>::push(L, ret);
+      }
+      catch (std::exception e) {
+        pusher<const char*>::push(L, e.what());
+        lua_error(L);
+      }
+      return counter<TRet>::count();
     }
 
     static void push(lua_State* L, f_type* func) {
@@ -607,10 +621,11 @@ class val {
     static int deleter(lua_State* L) {
       void* ptr = lua_touserdata(L, -1);
       auto func = *static_cast<f_type*>(ptr);
-      func->~f_type();
+      func.~f_type();
+      return 0;
     }
 
-    static void push(lua_State* L, f_type func) {
+    static void push(lua_State* L, const f_type& func) {
       void* f_data = lua_newuserdata(L, sizeof(f_type));
       f_type* f = new (f_data) f_type(func);
       lua_newtable(L);
@@ -628,7 +643,8 @@ class val {
     static int call(lua_State* L) {
       int nargs = lua_gettop(L);
       if (nargs != sizeof ...(TArgs)) {
-        pusher<const char*>::push(L, "C++ function invoked with the wrong number of arguments.");
+        pusher<const char*>::push(
+            L, "C++ function invoked with the wrong number of arguments.");
         lua_error(L);
       }
       void* ptr = lua_touserdata(L, lua_upvalueindex(1));
@@ -637,7 +653,8 @@ class val {
       try {
         TRet ret = func(p.get<TArgs>(L) ...);
         pusher<TRet>::push(L, ret);
-      } catch (std::exception e) {
+      }
+      catch (std::exception e) {
         pusher<const char*>::push(L, e.what());
         lua_error(L);
       }
