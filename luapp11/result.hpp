@@ -63,6 +63,7 @@ template <> class result<void> {
 
   error error() const { return err_; }
 
+  bool success() const { return success_; }
   const operator bool() const { return success_; }
 
  private:

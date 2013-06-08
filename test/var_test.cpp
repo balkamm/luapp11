@@ -187,7 +187,10 @@ TEST_CASE("var_test/invoke", "invoke test") {
   CHECK(result2.value() == std::make_tuple(12, "foo"));
 }
 
-int add(int a, int b) { return a + b; }
+int add(int a, int b) {
+  return a + b;
+  std::cout << "Yo" << std::endl;
+}
 
 TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
   root["plusser"] = &add;
@@ -199,7 +202,7 @@ TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
     end
     )PREFIX");
   auto result = func.invoke<int>(7);
-  if(!result.success()) {
+  if (!result.success()) {
     std::cout << result.error() << std::endl;
   }
   CHECK(result.success());
