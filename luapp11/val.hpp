@@ -472,18 +472,37 @@ class val {
   };
 
   template <typename TRet, typename ... TArgs> class caller {
+    typedef std::function<TRet(TArgs...)> f_type;
     static int call(lua_State* L) {
       int nargs = lua_gettop(L) - 1;
       if(nargs != sizeof...(TArgs)) {
         throw exception("C++ function invoked with the wrong number of arguments.");
       }
-      void* enclosed_func = lua_touserdata(L, 1);
-      auto func = *dynamic_cast<std::function<TRet(TArgs...)>*>(enclosed);
+      void* ptr = lua_touserdata(L, 1);
+      auto func = *static_cast<f_type*>(ptr);
       stack_popper p(-nargs);
       func(p.get<TArgs>(L)...);
     }
-    static void push_closure(lua_State* L, std::function<TRet(TArgs...)>* func) {
-      lua_pushlightuserdata(func);
+
+    static void push_closure(lua_State* L, f_type* func) {
+      lua_pushlightuserdata(L, func);
+      lua_pushcclosure(L, &call, 1);
+    }
+
+    static int deleter(lua_State* L) {
+      void* ptr = lua_touserdata(L, -1);
+      auto func = *static_cast<f_type*>(enclosed);
+      func->~f_type();
+    }
+
+    static void push_closure(lua_State* L, f_type& func) {
+      void* f_data = lua_newuserdata(L, sizeof(f_type));
+      f_type* f = new (f_data)f_type(func);
+      lua_newtable(L);
+      lua_pushcfunction(L, &deleter);
+      lua_setfield(L, -2, "__gc");
+      lua_setmetatable(L, -2);
+
       lua_pushcclosure(L, &call, 1);
     }
   };
