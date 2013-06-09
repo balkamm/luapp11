@@ -155,6 +155,34 @@ class val {
         break;
     }
   }
+
+  friend std::ostream& operator <<(std::ostream& out, const val& v) {
+    switch (v.type_) {
+      case type::nil:
+        out << "nil:nil";
+        break;
+      case type::lightuserdata:
+        out << "lightuserdata:" << v.ptr;
+        break;
+      case type::number:
+        out << "number:" << v.num;
+        break;
+      case type::boolean:
+        out << "boolean:" << v.boolean;
+        break;
+      case type::string:
+        out << "string:" << v.str;
+        break;
+      case type::thread:
+      case type::none:
+      case type::table:
+      case type::lua_function:
+      case type::userdata:
+        break;
+    }
+    return out;
+  }
+
   static val nil() { return val(); }
 
  private:
@@ -492,31 +520,6 @@ class val {
   template <typename T>
   struct pusher<T,
                 typename std::enable_if<std::is_same<T, char>::value>::type> {
-    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
-  };
-  template <typename T>
-  struct pusher<
-      T, typename std::enable_if<std::is_same<T, char16_t>::value>::type> {
-    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
-  };
-  template <typename T>
-  struct pusher<
-      T, typename std::enable_if<std::is_same<T, char32_t>::value>::type> {
-    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
-  };
-  template <typename T>
-  struct pusher<
-      T, typename std::enable_if<std::is_same<T, wchar_t>::value>::type> {
-    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
-  };
-  template <typename T>
-  struct pusher<
-      T, typename std::enable_if<std::is_same<T, signed char>::value>::type> {
-    static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
-  };
-  template <typename T>
-  struct pusher<
-      T, typename std::enable_if<std::is_same<T, short int>::value>::type> {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
   template <typename T>

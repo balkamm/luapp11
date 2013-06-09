@@ -98,7 +98,15 @@ class var {
                          other.lineage_.begin()).first == lineage_.end();
   }
 
+  template <typename T> bool operator==(const T& other) {
+    return get<T>() == other;
+  }
+
   bool operator!=(const var& other) { return !(operator==(other)); }
+
+  template <typename T> bool operator!=(const T& other) {
+    return !(operator==(other));
+  }
 
   /**
    * Get a child of this location in the lua environment.
@@ -189,7 +197,7 @@ class var {
 
   // Pushing
   void push_parent_key() const {
-    bool first;
+    bool first = true;
     for (auto& l : lineage_) {
       l.push(L);
       if (&l != &lineage_.back()) {
@@ -254,7 +262,6 @@ class var {
     }
   };
 
-
   // Invoking
   template <typename T, class Enable = void> struct caller {
     static result<T> call(lua_State* L, int nargs) {
@@ -301,7 +308,6 @@ class var {
           L, (int) sizeof ...(TArgs) * -1);
     }
   };
-
 
   // Private Constructors
   var(lua_State* L, int virtual_index, val key) : L { L }

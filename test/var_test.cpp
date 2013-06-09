@@ -117,6 +117,12 @@ TEST_CASE("var_test/assign", "assign test") {
 
   CHECK(node.get<int>() == node2.get<int>());
   CHECK(node != node2);
+
+  std::vector<std::string> words({"foo", "bar", "baz"});
+  auto vec = global["vec"] = words;
+  CHECK(vec[1].get<std::string>() == words[0]);
+  CHECK(vec[2].get<std::string>() == words[1]);
+  CHECK(vec[3].get<std::string>() == words[2]);
 }
 
 TEST_CASE("var_test/equality", "equality tests") {
