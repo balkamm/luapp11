@@ -4,7 +4,9 @@
 #include <iostream>
 #include <vector>
 
-#include "internal/traits.hpp"
+#include "luapp11/internal/traits.hpp"
+#include "luapp11/ptr.hpp"
+#include "luapp11/userdata.hpp"
 
 namespace luapp11 {
 
@@ -232,6 +234,14 @@ class var {
     return error();
   }
 
+  template <typename T, typename ... TArgs> ptr<T> create(TArgs ... args) {
+    stack_guard g(L);
+    push_parent_key();
+    do_create<T>::create(L, args ...);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
+    return get<ptr<T>>();
+  }
+
  private:
 
   // Pushing
@@ -345,6 +355,20 @@ class var {
       }
       return val::popper<std::tuple<TArgs ...>>::get(
           L, (int) sizeof ...(TArgs) * -1);
+    }
+  };
+
+  // Creators
+  template <typename T, class Enable = void> struct do_create {
+  };
+
+  template <typename T>
+  struct do_create<
+      T,
+      typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
+    template <typename ... TArgs> void create(lua_State* L, TArgs ... args) {
+      auto ptr = lua_newuserdata(L, sizeof(T));
+      new (ptr) T(args ...);
     }
   };
 
