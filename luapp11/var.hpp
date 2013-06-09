@@ -101,6 +101,32 @@ class var {
   }
 
   /**
+   * Assigns a value to this place in the lua environment.
+   * @param  toSet  The value to assign.
+   * @return        The location assigned to.
+   */
+  var& operator=(const std::initializer_list<val> & toSet) {
+    stack_guard g(L);
+    push_parent_key();
+    val::pusher<std::initializer_list<val>>::push(L, toSet);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
+    return *this;
+  }
+
+  /**
+   * Assigns a value to this place in the lua environment.
+   * @param  toSet  The value to assign.
+   * @return        The location assigned to.
+   */
+  var& operator=(const std::initializer_list<std::pair<val, val>> & toSet) {
+    stack_guard g(L);
+    push_parent_key();
+    val::pusher<std::initializer_list<std::pair<val, val>>>::push(L, toSet);
+    lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
+    return *this;
+  }
+
+  /**
    * Checks if two vars point to the same place in the lua environment.
    */
   bool operator==(const var& other) {

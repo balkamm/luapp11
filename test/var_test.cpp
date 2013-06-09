@@ -131,6 +131,16 @@ TEST_CASE("var_test/assign", "assign test") {
   CHECK(init[2] == words[1]);
   CHECK(init[3] == words[2]);
 
+  auto init2 = global["init2"] = { {"foo",1} , {"bar", 13}, {"baz",7} };
+  CHECK(init2["foo"] == 1);
+  CHECK(init2["bar"] == 13);
+  CHECK(init2["baz"] == 7);
+
+  auto init3 = global["init3"] = { 1, "foo", true};
+  CHECK(init3[1] == 1);
+  CHECK(init3[2] == std::string("foo"));
+  CHECK(init3[3] == true);
+
   std::set<float> floats({
     .25f, .5f, .75f
   });
