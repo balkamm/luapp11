@@ -487,9 +487,6 @@ class val {
   }
 
   template <typename T, class Enable = void> struct pusher {
-    static void push(lua_State* L, const T&) {
-      throw exception(std::string("Unable to push type: ") + typeid(T).name());
-    }
   };
 
   template <typename T>
