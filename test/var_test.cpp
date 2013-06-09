@@ -120,9 +120,38 @@ TEST_CASE("var_test/assign", "assign test") {
 
   std::vector<std::string> words({"foo", "bar", "baz"});
   auto vec = global["vec"] = words;
-  CHECK(vec[1].get<std::string>() == words[0]);
-  CHECK(vec[2].get<std::string>() == words[1]);
-  CHECK(vec[3].get<std::string>() == words[2]);
+  CHECK(vec[1] == words[0]);
+  CHECK(vec[2] == words[1]);
+  CHECK(vec[3] == words[2]);
+
+  auto init = global["init"] = {"foo", "bar", "baz"};
+  CHECK(init[1] == words[0]);
+  CHECK(init[2] == words[1]);
+  CHECK(init[3] == words[2]);
+
+  std::set<float> floats({.25f, .5f, .75f});
+  auto set = global["set"] = floats;
+  CHECK(set[1] == floats[0]);
+  CHECK(set[2] == floats[1]);
+  CHECK(set[3] == floats[2]);
+
+  std::unordered_set<int> floats({3, 2, 15});
+  auto set2 = global["set2"] = floats;
+  CHECK(set2[1] == floats[0]);
+  CHECK(set2[2] == floats[1]);
+  CHECK(set2[3] == floats[2]);
+
+  std::map<std::string, int> mapped({{"foo",3}, {"bar",2}, {"baz",15}});
+  auto map = global["map"] = mapped;
+  CHECK(map["foo"] == mapped["foo"]);
+  CHECK(map["bar"] == mapped["bar"]);
+  CHECK(map["baz"] == mapped["baz"]);
+
+  std::unordered_map<int, std::string> mapped({{3, "foo"}, {2, "bar"}, {15,"baz"}});
+  auto map = global["map"] = mapped;
+  CHECK(map[3] == mapped[3]);
+  CHECK(map[2] == mapped[2]);
+  CHECK(map[15] == mapped[15]);
 }
 
 TEST_CASE("var_test/equality", "equality tests") {
