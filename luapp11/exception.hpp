@@ -67,6 +67,7 @@ class exception : public std::exception {
   friend class val;
   friend class global;
   template <typename T> friend class result;
+  template <typename T> friend class userdata;
 };
 
 class error {

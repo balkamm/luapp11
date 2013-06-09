@@ -2,6 +2,7 @@
 
 #include "luapp11/internal/stack_guard.hpp"
 #include "luapp11/exception.hpp"
+#include "luapp11/ptr.hpp"
 #include <memory>
 #include <utility>
 #include <map>
@@ -38,6 +39,7 @@ class val {
   val(void* lud) : type_ { type::lightuserdata }
   , ptr { lud }
   {}
+
   val(std::initializer_list<std::pair<val, val>> t) : type_ { type::table }
   , table(new std::unordered_map<val, val, valueHasher>(t.begin(), t.end())) {}
 
@@ -90,6 +92,8 @@ class val {
         return get_table<T>::get(*this);
       case type::lightuserdata:
         return get_lightuserdata<T>::get(*this);
+      case type::userdata:
+        return get_userdata<T>::get(*this);
       case type::thread:
       default:
         throw luapp11::exception("Invalid Type Error");
@@ -235,6 +239,10 @@ class val {
       case type::lightuserdata:
         ptr = const_cast<void*>(lua_topointer(L, idx));
         break;
+      case type::userdata:
+        ptr = lua_touserdata(L, idx);
+        break;
+
       default:
         throw luapp11::exception("Bad Type.", L);
     }
@@ -446,6 +454,22 @@ class val {
   };
   template <typename T> struct get_lightuserdata<T*> {
     static T* get(const val& v) { return (T*)v.ptr; }
+  };
+  template <typename T> struct get_lightuserdata<ptr<T>> {
+    static ptr<T> get(const val& v) { return luapp11::ptr<T>((T*)v.ptr); }
+  };
+
+  template <typename T> struct get_userdata {
+    static T get(const val& v) {
+      throw luapp11::exception(std::string("Invalid Type Error: ") +
+                               typeid(T).name() + " not userdata");
+    }
+  };
+
+  template <typename T> struct get_userdata<ptr<T>> {
+    static ptr<T> get(const val& v) {
+      return luapp11::ptr<T>(userdata<T>::cast(v.ptr));
+    }
   };
 
   template <typename T, class Enable = void> struct popper {
@@ -667,7 +691,6 @@ class val {
       lua_pushcclosure(L, &call, 1);
     }
   };
-
   template <typename TFrom, typename TTo>
   struct pusher<std::map<TFrom, TTo>, std::enable_if<true>::type> {
     static void push(lua_State* L, const std::map<TFrom, TTo>& map) {
@@ -776,6 +799,12 @@ class val {
   type type_;
   friend class var;
   friend val chunk(const std::string& str);
+  template <typename T> friend void detail::push_func(T);
 };
 
+namespace detail {
+template <typename T> void push_func(T func) {
+  val::pusher<T>::push(func);
+}
+}
 }

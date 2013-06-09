@@ -238,7 +238,7 @@ class var {
   template <typename T, typename ... TArgs> ptr<T> create(TArgs ... args) {
     stack_guard g(L);
     push_parent_key();
-    do_create<T>::create(L, args ...);
+    do_create<T>::create(*this, args ...);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return get<ptr<T>>();
   }
@@ -312,6 +312,16 @@ class var {
     }
   };
 
+  template <typename T>
+  struct typed_is<
+      T,
+      typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
+    static inline bool is(lua_State* L) {
+      return !lua_isnoneornil(L, -1) && lua_isuserdata(L, -1) &&
+             userdata<T>::is(lua_touserdata(L, -1));
+    }
+  };
+
   // Invoking
   template <typename T, class Enable = void> struct caller {
     static result<T> call(lua_State* L, int nargs) {
@@ -367,16 +377,17 @@ class var {
   struct do_create<
       T,
       typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
-    template <typename ... TArgs> void create(const var* v, TArgs ... args) {
-      auto ptr = lua_newuserdata(v->L, sizeof(T));
-      new (ptr) T(*v, args ...);
+    template <typename ... TArgs>
+    static void create(const var& v, TArgs ... args) {
+      auto ptr = lua_newuserdata(v.L, sizeof(T));
+      new (ptr) T(args ...);
+      v.setup_metatable<T>();
     }
   };
 
   // Metastuff
-  template <typename T> bool setup_metatable(void(*init_func)(lua_State*)) {
+  template <typename T> void setup_metatable() const {
     stack_guard g(L);
-    push();
     {
       stack_guard g2(L, true);
       lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
@@ -389,7 +400,7 @@ class var {
       lua_getfield(L, -1, name);
       if (lua_isnoneornil(L, -1)) {
         lua_newtable(L);
-        init_func(L);
+        userdata<T>::init_func(L);
         lua_setfield(L, -2, name);
         lua_getfield(L, -1, name);
       }
