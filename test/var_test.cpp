@@ -118,40 +118,54 @@ TEST_CASE("var_test/assign", "assign test") {
   CHECK(node.get<int>() == node2.get<int>());
   CHECK(node != node2);
 
-  std::vector<std::string> words({"foo", "bar", "baz"});
+  std::vector<std::string> words({
+    "foo", "bar", "baz"
+  });
   auto vec = global["vec"] = words;
   CHECK(vec[1] == words[0]);
   CHECK(vec[2] == words[1]);
   CHECK(vec[3] == words[2]);
 
-  auto init = global["init"] = {"foo", "bar", "baz"};
+  auto init = global["init"] = { "foo", "bar", "baz" };
   CHECK(init[1] == words[0]);
   CHECK(init[2] == words[1]);
   CHECK(init[3] == words[2]);
 
-  std::set<float> floats({.25f, .5f, .75f});
+  std::set<float> floats({
+    .25f, .5f, .75f
+  });
   auto set = global["set"] = floats;
-  CHECK(set[1] == floats[0]);
-  CHECK(set[2] == floats[1]);
-  CHECK(set[3] == floats[2]);
+  CHECK(set[.25f].get<bool>());
+  CHECK(set[.5f].get<bool>());
+  CHECK(set[.75f].get<bool>());
 
-  std::unordered_set<int> floats({3, 2, 15});
-  auto set2 = global["set2"] = floats;
-  CHECK(set2[1] == floats[0]);
-  CHECK(set2[2] == floats[1]);
-  CHECK(set2[3] == floats[2]);
+  std::unordered_set<int> ints({
+    3, 2, 15
+  });
+  auto set2 = global["set2"] = ints;
+  CHECK(set2[3].get<bool>());
+  CHECK(set2[2].get<bool>());
+  CHECK(set2[15].get<bool>());
 
-  std::map<std::string, int> mapped({{"foo",3}, {"bar",2}, {"baz",15}});
+  std::map<std::string, int> mapped({
+    { "foo", 3 }
+    , { "bar", 2 }
+    , { "baz", 15 }
+  });
   auto map = global["map"] = mapped;
   CHECK(map["foo"] == mapped["foo"]);
   CHECK(map["bar"] == mapped["bar"]);
   CHECK(map["baz"] == mapped["baz"]);
 
-  std::unordered_map<int, std::string> mapped({{3, "foo"}, {2, "bar"}, {15,"baz"}});
-  auto map = global["map"] = mapped;
-  CHECK(map[3] == mapped[3]);
-  CHECK(map[2] == mapped[2]);
-  CHECK(map[15] == mapped[15]);
+  std::unordered_map<int, std::string> mapped2({
+    { 3, "foo" }
+    , { 2, "bar" }
+    , { 15, "baz" }
+  });
+  auto map2 = global["map2"] = mapped2;
+  CHECK(map2[3] == mapped2[3]);
+  CHECK(map2[2] == mapped2[2]);
+  CHECK(map2[15] == mapped2[15]);
 }
 
 TEST_CASE("var_test/equality", "equality tests") {
@@ -222,9 +236,7 @@ TEST_CASE("var_test/invoke", "invoke test") {
   CHECK(result2.value() == std::make_tuple(12, "foo"));
 }
 
-int add(int a, int b) {
-  return a + b;
-}
+int add(int a, int b) { return a + b; }
 
 TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
   global["plusser"] = &add;
@@ -242,7 +254,8 @@ TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
   CHECK(result.success());
   CHECK(result.value() == 12);
 
-  global["lambda"] = [](int a, int b) { return a + b; };
+  global["lambda"] = [](int a, int b) { return a + b; }
+  ;
   auto func2 = global["func2"];
   func2.do_chunk(
       R"PREFIX(

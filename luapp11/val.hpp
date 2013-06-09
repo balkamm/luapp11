@@ -156,7 +156,7 @@ class val {
     }
   }
 
-  friend std::ostream& operator <<(std::ostream& out, const val& v) {
+  friend std::ostream& operator<<(std::ostream& out, const val& v) {
     switch (v.type_) {
       case type::nil:
         out << "nil:nil";
@@ -736,10 +736,9 @@ class val {
   template <typename T> struct pusher<std::set<T>, std::enable_if<true>::type> {
     static void push(lua_State* L, const std::set<T>& set) {
       lua_newtable(L);
-      int idx = 0;
       for (auto& i : set) {
-        lua_pushnumber(L, ++idx);
         pusher<T>::push(L, i);
+        lua_pushboolean(L, true);
         lua_settable(L, -3);
       }
     }
@@ -749,10 +748,9 @@ class val {
   struct pusher<std::unordered_set<T>, std::enable_if<true>::type> {
     static void push(lua_State* L, const std::unordered_set<T>& set) {
       lua_newtable(L);
-      int idx = 0;
       for (auto& i : set) {
-        lua_pushnumber(L, ++idx);
         pusher<T>::push(L, i);
+        lua_pushboolean(L, true);
         lua_settable(L, -3);
       }
     }
