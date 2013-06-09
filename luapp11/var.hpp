@@ -6,9 +6,10 @@
 
 #include "luapp11/internal/traits.hpp"
 #include "luapp11/ptr.hpp"
-#include "luapp11/userdata.hpp"
 
 namespace luapp11 {
+
+template <typename T> class userdata;
 
 /**
  * A lua "variable".  A specific place in the lua environment which can be read from and assigned to.
@@ -51,7 +52,7 @@ class var {
    * @param    fallback The value to return if type convertion fails.
    * @return            The value found there, or the default value if conversion fails.
    */
-  template <typename T> T as(T && fallback) {
+  template <typename T> T as(T && fallback) const {
     stack_guard g(L);
     return dirty_is<T>() ? val(L).get<T>() : fallback;
   }
@@ -131,7 +132,7 @@ class var {
   /**
    * Checks if two vars point to the same place in the lua environment.
    */
-  bool operator==(const var& other) {
+  bool operator==(const var& other) const {
     return L == other.L && virtual_index_ == other.virtual_index_ &&
            lineage_.size() == other.lineage_.size() &&
            std::mismatch(lineage_.begin(),
@@ -139,13 +140,13 @@ class var {
                          other.lineage_.begin()).first == lineage_.end();
   }
 
-  template <typename T> bool operator==(const T& other) {
+  template <typename T> bool operator==(const T& other) const {
     return get<T>() == other;
   }
 
-  bool operator!=(const var& other) { return !(operator==(other)); }
+  bool operator!=(const var& other) const { return !(operator==(other)); }
 
-  template <typename T> bool operator!=(const T& other) {
+  template <typename T> bool operator!=(const T& other) const {
     return !(operator==(other));
   }
 
@@ -154,20 +155,20 @@ class var {
    * @param  idx  The index to get.
    * @return      A var which points to the child of this location at index idx.
    */
-  var operator[](val idx) { return var(*this, idx); }
+  var operator[](val idx) const { return var(*this, idx); }
 
   /**
    * Get a child of this location in the lua environment.
    * @param  idx  The location of the index to get.
    * @return      A var which points to the child of this location at index idx.
    */
-  var operator[](var idx) { return var(*this, idx.get_value()); }
+  var operator[](var idx) const { return var(*this, idx.get_value()); }
 
   /**
    * Attempt to call the function at this location in the lua environment.
    * @param args  The arguments to the call
    */
-  template <typename ... TArgs> result<void> operator()(TArgs ... args) {
+  template <typename ... TArgs> result<void> operator()(TArgs ... args) const {
     return invoke<void>(args ...);
   }
 
@@ -177,7 +178,7 @@ class var {
    * @return      The result of the invocation.
    */
   template <typename TOut, typename ... TArgs>
-  result<TOut> invoke(TArgs ... args) {
+  result<TOut> invoke(TArgs ... args) const {
     stack_guard g(L);
     if (dirty_is<TOut(TArgs ...)>()) {
       val::push_all<TArgs ...>(L, args ...);
@@ -186,7 +187,7 @@ class var {
     throw exception("Tried to invoke non-function.", L);
   }
 
-  template <typename TOut> result<TOut> invoke() {
+  template <typename TOut> result<TOut> invoke() const {
     stack_guard g(L);
     if (dirty_is<TOut()>()) {
       return caller<TOut>::pcall(L, 0);
@@ -240,6 +241,20 @@ class var {
     do_create<T>::create(L, args ...);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return get<ptr<T>>();
+  }
+
+  template <typename TFunc>
+  void register_meta_method(std::string meta_method, TFunc func) const {
+    stack_guard g(L);
+    push();
+    if(!lua_getmetatable(L, -1)) {
+      lua_newtable(L);
+      lua_setmetatable(L, -2);
+      lua_getmetatable(L, -1);
+    }
+    val::pusher<std::string>::push(L, meta_method);
+    val::pusher<TFunc>::push(L, func);
+    lua_settable(L, -3);
   }
 
  private:
@@ -366,9 +381,9 @@ class var {
   struct do_create<
       T,
       typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
-    template <typename ... TArgs> void create(lua_State* L, TArgs ... args) {
-      auto ptr = lua_newuserdata(L, sizeof(T));
-      new (ptr) T(args ...);
+    template <typename ... TArgs> void create(const var* v, TArgs ... args) {
+      auto ptr = lua_newuserdata(v->L, sizeof(T));
+      new (ptr) T(*v, args ...);
     }
   };
 
