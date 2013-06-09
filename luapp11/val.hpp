@@ -184,7 +184,6 @@ class val {
     lightuserdata = LUA_TLIGHTUSERDATA,
   };
 
-
   // Private Constructors
   val(lua_State* L, type t, int idx) : type_(t) {
     switch (t) {
@@ -220,7 +219,6 @@ class val {
   val(const std::string& str, type t) : type_ { t }
   , str { str.c_str() }
   {}
-
 
   // Puts on the top of the stack -0, +1, -
   virtual void push(lua_State* L) const {
@@ -265,7 +263,6 @@ class val {
         throw luapp11::exception("Bad Type.", L);
     }
   }
-
 
   // Getting
   template <typename T, class Enable = void> struct get_number {
@@ -427,7 +424,6 @@ class val {
     static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
   };
 
-
   // Popping
   template <typename T>
   struct popper<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
@@ -456,7 +452,6 @@ class val {
     }
   };
 
-
   // Counting
   template <typename T, class Enable = void> struct counter {
     static int count() { return 1; }
@@ -472,7 +467,6 @@ class val {
   struct counter<std::tuple<TArgs ...>, std::enable_if<true>::type> {
     static int count() { return sizeof ...(TArgs); }
   };
-
 
   // Pushing
   template <typename TArg, typename ... TArgs>
@@ -676,8 +670,8 @@ class val {
     static void push(lua_State* L, const std::map<TFrom, TTo>& map) {
       lua_newtable(L);
       for (auto& i : map) {
-        pusher::push(L, i.first);
-        pusher::push(L, i.second);
+        pusher<TFrom>::push(L, i.first);
+        pusher<TTo>::push(L, i.second);
         lua_settable(L, -3);
       }
     }
@@ -688,8 +682,8 @@ class val {
     static void push(lua_State* L, const std::unordered_map<TFrom, TTo>& map) {
       lua_newtable(L);
       for (auto& i : map) {
-        pusher::push(L, i.first);
-        pusher::push(L, i.second);
+        pusher<TFrom>::push(L, i.first);
+        pusher<TTo>::push(L, i.second);
         lua_settable(L, -3);
       }
     }
@@ -703,8 +697,8 @@ class val {
         const std::initializer_list<std::pair<TFrom, TTo>>& map) {
       lua_newtable(L);
       for (auto& i : map) {
-        pusher::push(L, i.first);
-        pusher::push(L, i.second);
+        pusher<TFrom>::push(L, i.first);
+        pusher<TTo>::push(L, i.second);
         lua_settable(L, -3);
       }
     }
@@ -717,7 +711,7 @@ class val {
       int idx = 0;
       for (auto& i : vec) {
         lua_pushnumber(L, ++idx);
-        pusher::push(L, i);
+        pusher<T>::push(L, i);
         lua_settable(L, -3);
       }
     }
@@ -730,7 +724,7 @@ class val {
       int idx = 0;
       for (auto& i : vec) {
         lua_pushnumber(L, ++idx);
-        pusher::push(L, i);
+        pusher<T>::push(L, i);
         lua_settable(L, -3);
       }
     }
@@ -742,7 +736,7 @@ class val {
       int idx = 0;
       for (auto& i : set) {
         lua_pushnumber(L, ++idx);
-        pusher::push(L, i);
+        pusher<T>::push(L, i);
         lua_settable(L, -3);
       }
     }
@@ -755,12 +749,11 @@ class val {
       int idx = 0;
       for (auto& i : set) {
         lua_pushnumber(L, ++idx);
-        pusher::push(L, i);
+        pusher<T>::push(L, i);
         lua_settable(L, -3);
       }
     }
   };
-
 
   // Member variables
   struct UD {

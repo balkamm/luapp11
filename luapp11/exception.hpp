@@ -47,6 +47,9 @@ class exception : public std::exception {
         case LUA_TFUNCTION:
           ss << "function" << std::endl;
           break;
+        case LUA_TTABLE:
+          ss << "table" << std::endl;
+          break;
         default:
           ss << lua_typename(L, i) << std::endl;
           break;
