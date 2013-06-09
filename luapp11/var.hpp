@@ -377,20 +377,24 @@ class var {
   template <typename T> bool setup_metatable(void(*init_func)(lua_State*)) {
     stack_guard g(L);
     push();
-    lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
-    if (lua_isnoneornil(L, -1)) {
-      lua_newtable(L);
-      lua_setfield(L, LUA_REGISTRYINDEX, "metatables");
+    {
+      stack_guard g2(L, true);
       lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
-    }
-    auto name = typeid(T).name();
-    lua_getfield(L, -1, name);
-    if (lua_isnoneornil(L, -1)) {
-      lua_newtable(L);
-      init_func(L);
-      lua_setfield(L, -2, name);
+      if (lua_isnoneornil(L, -1)) {
+        lua_newtable(L);
+        lua_setfield(L, LUA_REGISTRYINDEX, "metatables");
+        lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
+      }
+      auto name = typeid(T).name();
       lua_getfield(L, -1, name);
+      if (lua_isnoneornil(L, -1)) {
+        lua_newtable(L);
+        init_func(L);
+        lua_setfield(L, -2, name);
+        lua_getfield(L, -1, name);
+      }
     }
+    lua_setmetatable(L, -2);
   }
 
   // Private Constructors

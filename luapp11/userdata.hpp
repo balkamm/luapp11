@@ -11,7 +11,9 @@ template <typename TDerived> class userdata {
 
  protected:
   userdata(const var& v) : type_hash_code_ { typeid(TDerived).hash_code() }
-  { v.setup_metatable<TDerived>(&userdata::init_func); }
+  {
+    // v.setup_metatable<TDerived>(&userdata::init_func);
+  }
 
   template <typename T> void export_method(std::string& method_name) {}
  private:
@@ -32,13 +34,13 @@ template <typename TDerived> class userdata {
       registrar<decltype((val(TDerived::*)(val))&TDerived::operator[])>::reg(L, "__index");
       registrar<decltype((val(TDerived::*)(val)) & TDerived::newindex)>::reg(
           L, "__newindex");
-      registrar<decltype(&userdata::call)>::reg(L, "__call");
+      // registrar::reg(L, "__call", dispatch());
       registrar<decltype(&userdata::destroy)>::reg(L, "__gc");
   }
 
-  int call(lua_State* L) {}
+  static int call(lua_State* L) {}
 
-  int destroy(lua_State* L) {
+  static int destroy(lua_State* L) {
     auto ptr = lua_touserdata(L, -1);
     auto p = (TDerived*)ptr;
     p->~TDerived();
