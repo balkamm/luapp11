@@ -41,8 +41,10 @@ class exception : public std::exception {
              << std::endl;
           break;
         case LUA_TUSERDATA:
+        ss << "userdata: " << lua_topointer(L, i) << std::endl;
+          break;
         case LUA_TLIGHTUSERDATA:
-          ss << "userdata: " << lua_topointer(L, i) << std::endl;
+          ss << "lightuserdata: " << lua_topointer(L, i) << std::endl;
           break;
         case LUA_TFUNCTION:
           ss << "function" << std::endl;
@@ -50,8 +52,8 @@ class exception : public std::exception {
         case LUA_TTABLE:
           ss << "table" << std::endl;
           break;
-        default:
-          ss << lua_typename(L, i) << std::endl;
+        case LUA_TNIL:
+          ss << "nil" << std::endl;
           break;
       }
     }

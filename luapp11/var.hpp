@@ -392,6 +392,7 @@ class var {
       stack_guard g2(L, true);
       lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
       if (lua_isnoneornil(L, -1)) {
+        lua_pop(L,1);
         lua_newtable(L);
         lua_setfield(L, LUA_REGISTRYINDEX, "metatables");
         lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
@@ -399,6 +400,7 @@ class var {
       auto name = typeid(T).name();
       lua_getfield(L, -1, name);
       if (lua_isnoneornil(L, -1)) {
+        lua_pop(L,1);
         lua_newtable(L);
         userdata<T>::init_func(L);
         lua_setfield(L, -2, name);

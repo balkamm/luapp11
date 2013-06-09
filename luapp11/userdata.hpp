@@ -1,5 +1,6 @@
 #pragma once
 
+#include <typeinfo>
 #include <string>
 #include "luapp11/internal/fwd.hpp"
 

@@ -16,6 +16,10 @@ class MyInt : public userdata<MyInt> {
 
 TEST_CASE("userdata_test/create", "userdata create test") {
   auto test = global["test"];
-  ptr<MyInt> p = test.create<MyInt>(7);
-  CHECK((*p).get_int() == 7);
+  try {
+  	ptr<MyInt> p = test.create<MyInt>(7);
+  	CHECK((*p).get_int() == 7);
+  } catch (luapp11::exception e) {
+  	std::cout << e << std::endl;
+  }
 }
