@@ -243,20 +243,6 @@ class var {
     return get<ptr<T>>();
   }
 
-  template <typename TFunc>
-  void register_meta_method(std::string meta_method, TFunc func) const {
-    stack_guard g(L);
-    push();
-    if(!lua_getmetatable(L, -1)) {
-      lua_newtable(L);
-      lua_setmetatable(L, -2);
-      lua_getmetatable(L, -1);
-    }
-    val::pusher<std::string>::push(L, meta_method);
-    val::pusher<TFunc>::push(L, func);
-    lua_settable(L, -3);
-  }
-
  private:
 
   // Pushing
@@ -387,6 +373,26 @@ class var {
     }
   };
 
+  // Metastuff
+  template <typename T> bool setup_metatable(void(*init_func)(lua_State*)) {
+    stack_guard g(L);
+    push();
+    lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
+    if (lua_isnoneornil(L, -1)) {
+      lua_newtable(L);
+      lua_setfield(L, LUA_REGISTRYINDEX, "metatables");
+      lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
+    }
+    auto name = typeid(T).name();
+    lua_getfield(L, -1, name);
+    if (lua_isnoneornil(L, -1)) {
+      lua_newtable(L);
+      init_func(L);
+      lua_setfield(L, -2, name);
+      lua_getfield(L, -1, name);
+    }
+  }
+
   // Private Constructors
   var(lua_State* L, int virtual_index, val key) : L { L }
   , virtual_index_ { virtual_index }
@@ -402,6 +408,7 @@ class var {
   int virtual_index_;
 
   friend class global;
+  template <typename T> friend class userdata;
 };
 
 }
