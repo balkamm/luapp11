@@ -10,16 +10,17 @@ class MyInt : public userdata<MyInt> {
   MyInt(int i) : userdata<MyInt>(), myInt_ { i }
   {}
 
+  friend MyInt operator+(const MyInt& a, const MyInt& b) {
+    std::cout << "Special Add..." << std::endl;
+    return a.myInt_ + b.myInt_;
+  }
   int myInt_;
   friend class var;
 };
 
 TEST_CASE("userdata_test/create", "userdata create test") {
   auto test = global["test"];
-  try {
-  	ptr<MyInt> p = test.create<MyInt>(7);
-  	CHECK((*p).get_int() == 7);
-  } catch (luapp11::exception e) {
-  	std::cout << e << std::endl;
-  }
+  ptr<MyInt> p = test.create<MyInt>(7);
+  CHECK(p->get_int() == 7);
+  CHECK(test == p);
 }

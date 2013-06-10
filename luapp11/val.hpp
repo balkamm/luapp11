@@ -303,8 +303,8 @@ class val {
   // Getting
   template <typename T, class Enable = void> struct get_number {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a number");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a number, expected: ") + typeid(T).name());
     }
   };
 
@@ -326,8 +326,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_boolean {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a boolean");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a boolean, expected: ") + typeid(T).name());
     }
   };
 
@@ -339,8 +339,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_string {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a string");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a string, expected: ") + typeid(T).name());
     }
   };
 
@@ -407,8 +407,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_nil {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a nil");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a nil, expected: ") + typeid(T).name());
     }
   };
 
@@ -425,8 +425,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_table {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a table");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a table, expected: ") + typeid(T).name());
     }
   };
 
@@ -438,8 +438,8 @@ class val {
 
   template <typename T, class Enable = void> struct get_function {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not a function");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a function, expected: ") + typeid(T).name());
     }
   };
 
@@ -461,8 +461,8 @@ class val {
 
   template <typename T> struct get_userdata {
     static T get(const val& v) {
-      throw luapp11::exception(std::string("Invalid Type Error: ") +
-                               typeid(T).name() + " not userdata");
+      throw luapp11::exception(std::string(
+          "Invalid Type Error: is a userdata, expected: ") + typeid(T).name());
     }
   };
 
@@ -803,8 +803,6 @@ class val {
 };
 
 namespace detail {
-template <typename T> void push_func(T func) {
-  val::pusher<T>::push(func);
-}
+template <typename T> void push_func(T func) { val::pusher<T>::push(func); }
 }
 }
