@@ -13,6 +13,7 @@ struct stack_guard {
   , initTop_ { lua_gettop(state) }
   , ret_ { ret }
   {}
+  stack_guard(const stack_guard&) = delete;
 
   ~stack_guard() {
     auto toPop = lua_gettop(state_) - initTop_;

@@ -243,6 +243,61 @@ class var {
     return get<ptr<T>>();
   }
 
+  class var_iterator :
+      public std::iterator<std::forward_iterator_tag, std::pair<val, var>> {
+   public:
+    var_iterator(const var& v) : v_(&v), L(v.L), g_(new stack_guard(L)) {
+      v.push();
+      idx_ = lua_gettop(L);
+      lua_pushnil(L);
+      inc();
+    }
+    var_iterator(const var_iterator&) = delete;
+    var_iterator(var_iterator && other) { swap(*this, other); }
+    var_iterator& operator++() {
+      inc();
+      return *this;
+    }
+    bool operator==(const var_iterator& other) {
+      return std::tie(L, idx_) == std::tie(other.L, other.idx_);
+    }
+    bool operator!=(const var_iterator& other) {
+      return std::tie(L, idx_) == std::tie(other.L, other.idx_);
+    }
+    var_iterator& operator=(var_iterator other) {
+      swap(*this,other);
+      return*this;
+    }
+    std::pair<val, var> operator*() {
+      val v(L);
+      return std::make_pair(v, (*v_)[v]);
+    }
+    friend void swap(var_iterator& a, var_iterator& b)  // nothrow
+        {
+      using std::swap;
+
+      swap(a.v_, b.v_);
+      swap(a.L, b.L);
+      swap(a.idx_, b.idx_);
+      swap(a.g_, b.g_);
+    }
+   private:
+    var_iterator(lua_State* L, int idx) : L(L), idx_(idx), v_(nullptr) {}
+    void inc() {
+      if (!lua_next(L, idx_)) {
+        idx_ = 0;
+      }
+    }
+
+    const var* v_;
+    lua_State* L;
+    int idx_;
+    std::unique_ptr<stack_guard> g_;
+    friend class var;
+  };
+
+  var_iterator begin() { return var_iterator(*this); }
+  var_iterator end() { return var_iterator(L, 0); }
  private:
 
   // Pushing
@@ -392,7 +447,7 @@ class var {
       stack_guard g2(L, true);
       lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
       if (lua_isnoneornil(L, -1)) {
-        lua_pop(L,1);
+        lua_pop(L, 1);
         lua_newtable(L);
         lua_setfield(L, LUA_REGISTRYINDEX, "metatables");
         lua_getfield(L, LUA_REGISTRYINDEX, "metatables");
@@ -400,7 +455,7 @@ class var {
       auto name = typeid(T).name();
       lua_getfield(L, -1, name);
       if (lua_isnoneornil(L, -1)) {
-        lua_pop(L,1);
+        lua_pop(L, 1);
         lua_newtable(L);
         userdata<T>::init_func(L);
         lua_setfield(L, -2, name);
