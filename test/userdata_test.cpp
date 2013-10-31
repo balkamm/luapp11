@@ -24,3 +24,10 @@ TEST_CASE("userdata_test/create", "userdata create test") {
   CHECK(p->get_int() == 7);
   CHECK(test == p);
 }
+
+TEST_CASE("userdata_test/add", "userdata add op test") {
+  ptr<MyInt> p1 = global["p1"].create<MyInt>(7);
+  ptr<MyInt> p2 = global["p2"].create<MyInt>(5);
+  global["p3"].do_chunk("return p1 + p2");
+  CHECK(global["p3"].get<int>() == 12);
+}
