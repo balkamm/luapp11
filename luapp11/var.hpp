@@ -273,14 +273,10 @@ class var {
 
   friend class var_iterator;
   friend class var_const_iterator;
-  var_iterator&& begin() { return std::move(var_iterator(*this)); }
-  var_iterator&& end() { return std::move(var_iterator(L, 0)); }
-  var_const_iterator&& begin() const {
-    return std::move(var_const_iterator(*this));
-  }
-  var_const_iterator&& end() const {
-    return std::move(var_const_iterator(L, 0));
-  }
+  var_iterator begin() { return var_iterator(*this); }
+  var_iterator end() { return var_iterator(L, 0); }
+  var_const_iterator begin() const { return var_const_iterator(*this); }
+  var_const_iterator end() const { return var_const_iterator(L, 0); }
   // const var_iterator& cbegin() const { return var_iterator(*this); }
   // const var_iterator& cend() const { return var_iterator(L, 0); }
 
