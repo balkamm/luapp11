@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": "/home/matthew/src/luapp11"
+    }
+  ],
+  "SublimeLinter": {
+    "linters": {
+      "clang": {
+        "include_dirs": [
+          "/usr/include/luajit-2.0/"
+        ],
+        "extra_flags": "-std=c++11"
+      }
+    }
+  }
+}
