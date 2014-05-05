@@ -15,13 +15,12 @@ class exception : public std::exception {
     return out << "luapp11 Exception: " << e.what() << std::endl << e.stack_
                << std::endl;
   }
+
  private:
   exception(std::string what) : what_(what), stack_() {}
 
   exception(std::string what, lua_State* L)
-      : what_(what),
-        stack_(stackdump(L)) {
-  }
+      : what_(what), stack_(stackdump(L)) {}
 
   static std::string stackdump(lua_State* L) {
     std::stringstream ss;
@@ -41,7 +40,7 @@ class exception : public std::exception {
              << std::endl;
           break;
         case LUA_TUSERDATA:
-        ss << "userdata: " << lua_topointer(L, i) << std::endl;
+          ss << "userdata: " << lua_topointer(L, i) << std::endl;
           break;
         case LUA_TLIGHTUSERDATA:
           ss << "lightuserdata: " << lua_topointer(L, i) << std::endl;
@@ -68,8 +67,10 @@ class exception : public std::exception {
   friend class var;
   friend class val;
   friend class global;
-  template <typename T> friend class result;
-  template <typename T> friend class userdata;
+  template <typename T>
+  friend class result;
+  template <typename T>
+  friend class userdata;
 };
 
 class error {
@@ -95,16 +96,15 @@ class error {
   const explicit operator bool() const { return type_ != type::none; }
 
   friend std::ostream& operator<<(std::ostream& out, const error& e) {
-    return out << "luapp11 Error:" << (int)
-           e.type_ << std::endl << e.message_ << std::endl << e.lua_message_
-               << std::endl << e.stack_ << std::endl;
+    return out << "luapp11 Error:" << (int)e.type_ << std::endl << e.message_
+               << std::endl << e.lua_message_ << std::endl << e.stack_
+               << std::endl;
   }
+
  private:
-  error() : type_ { type::none }
-  {}
-  error(int t, std::string message, lua_State* L) : type_ { (type) t }
-  , message_ { message }
-  {
+  error() : type_{type::none} {}
+  error(int t, std::string message, lua_State* L)
+      : type_{(type)t}, message_{message} {
     if (lua_isstring(L, -1)) {
       lua_message_ = lua_tostring(L, -1);
       lua_pop(L, 1);
@@ -120,7 +120,8 @@ class error {
   friend class var;
   friend class val;
   friend class global;
-  template <typename T> friend class result;
+  template <typename T>
+  friend class result;
   friend error do_chunk(const std::string& str);
   friend error do_file(const std::string& path);
 };

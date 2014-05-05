@@ -17,31 +17,19 @@ namespace luapp11 {
 
 class val {
  public:
-  val() : type_ { type::nil }
-  , ptr { nullptr }
-  {}
-  val(lua_Number n) : type_ { type::number }
-  , num { n }
-  {}
-  val(int n) : type_ { type::number }
-  , num { (lua_Number) n }
-  {}
-  val(bool b) : type_ { type::boolean }
-  , boolean { b }
-  {}
-  val(const std::string& s) : type_ { type::string }
-  , str { s.c_str() }
-  {}
-  val(const char* s) : type_ { type::string }
-  , str { s }
-  {}
+  val() : type_{type::nil}, ptr{nullptr} {}
+  val(lua_Number n) : type_{type::number}, num{n} {}
+  val(int n) : type_{type::number}, num{(lua_Number)n} {}
+  val(bool b) : type_{type::boolean}, boolean{b} {}
+  val(const std::string& s) : type_{type::string}, str{s.c_str()} {}
+  val(const char* s) : type_{type::string}, str{s} {}
 
-  val(void* lud) : type_ { type::lightuserdata }
-  , ptr { lud }
-  {}
+  val(void* lud) : type_{type::lightuserdata}, ptr{lud} {}
 
-  val(std::initializer_list<std::pair<val, val>> t) : type_ { type::table }
-  , table(new std::unordered_map<val, val, valueHasher>(t.begin(), t.end())) {}
+  val(std::initializer_list<std::pair<val, val>> t)
+      : type_{type::table},
+        table(new std::unordered_map<val, val, valueHasher>(t.begin(),
+                                                            t.end())) {}
 
   ~val() {
     if (type_ == type::table) {
@@ -49,8 +37,7 @@ class val {
     }
   }
 
-  val(const val& other) : type_ { other.type_ }
-  {
+  val(const val& other) : type_{other.type_} {
     switch (type_) {
       case type::nil:
       case type::lightuserdata:
@@ -76,9 +63,10 @@ class val {
     }
   }
 
-  val(val && other) { swap(*this, other); }
+  val(val&& other) { swap(*this, other); }
 
-  template <typename T> T get() {
+  template <typename T>
+  T get() {
     switch (type_) {
       case type::number:
         return get_number<T>::get(*this);
@@ -249,12 +237,10 @@ class val {
   }
 
   val(lua_State* L, type t) : val(L, t, -1) {}
-  val(lua_State* L, int idx) : val(L, (type) lua_type(L, idx), idx) {}
-  val(lua_State* L) : val(L, (type) lua_type(L, -1), -1) {}
+  val(lua_State* L, int idx) : val(L, (type)lua_type(L, idx), idx) {}
+  val(lua_State* L) : val(L, (type)lua_type(L, -1), -1) {}
 
-  val(const std::string& str, type t) : type_ { t }
-  , str { str.c_str() }
-  {}
+  val(const std::string& str, type t) : type_{t}, str{str.c_str()} {}
 
   // Puts on the top of the stack -0, +1, -
   virtual void push(lua_State* L) const {
@@ -280,15 +266,15 @@ class val {
         }
         break;
       }
-        // case type::cfunction: {
-        //   lua_pushcfunction(s, func);
-        //   break;
-        // }
-        // case type::Userdata: {
-        //  auto data = lua_newuserdata(s, userData.Size);
-        //  std::copy(userData.Data, userData.Data[userData.Size], data);
-        //  break;
-        // }
+      // case type::cfunction: {
+      //   lua_pushcfunction(s, func);
+      //   break;
+      // }
+      // case type::Userdata: {
+      //  auto data = lua_newuserdata(s, userData.Size);
+      //  std::copy(userData.Data, userData.Data[userData.Size], data);
+      //  break;
+      // }
       case type::thread:
         lua_pushthread(thread);
         break;
@@ -301,10 +287,12 @@ class val {
   }
 
   // Getting
-  template <typename T, class Enable = void> struct get_number {
+  template <typename T, class Enable = void>
+  struct get_number {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a number, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a number, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -324,10 +312,12 @@ class val {
     }
   };
 
-  template <typename T, class Enable = void> struct get_boolean {
+  template <typename T, class Enable = void>
+  struct get_boolean {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a boolean, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a boolean, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -337,10 +327,12 @@ class val {
     static T get(const val& v) { return v.boolean; }
   };
 
-  template <typename T, class Enable = void> struct get_string {
+  template <typename T, class Enable = void>
+  struct get_string {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a string, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a string, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -381,9 +373,8 @@ class val {
   };
 
   template <typename T>
-  struct get_string<T,
-                    typename std::enable_if<
-                        std::is_same<T, unsigned long long>::value>::type> {
+  struct get_string<T, typename std::enable_if<
+                           std::is_same<T, unsigned long long>::value>::type> {
     static T get(const val& v) { return std::stoull(v.str); }
   };
 
@@ -405,10 +396,12 @@ class val {
     static T get(const val& v) { return std::stold(v.str); }
   };
 
-  template <typename T, class Enable = void> struct get_nil {
+  template <typename T, class Enable = void>
+  struct get_nil {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a nil, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a nil, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -420,13 +413,15 @@ class val {
   template <typename T>
   struct get_nil<T,
                  typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-    static T get(const val& v) { return (T) NULL; }
+    static T get(const val& v) { return (T)NULL; }
   };
 
-  template <typename T, class Enable = void> struct get_table {
+  template <typename T, class Enable = void>
+  struct get_table {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a table, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a table, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -436,10 +431,12 @@ class val {
     static T get(const val& v) { return *v.table; }
   };
 
-  template <typename T, class Enable = void> struct get_function {
+  template <typename T, class Enable = void>
+  struct get_function {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a function, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a function, expected: ") +
+          typeid(T).name());
     }
   };
 
@@ -449,30 +446,37 @@ class val {
   //   static T get(const val& v) { return dynamic_cast<T>(v.func); }
   // };
 
-  template <typename T> struct get_lightuserdata {
+  template <typename T>
+  struct get_lightuserdata {
     static T get(const val& v) { return *(T*)v.ptr; }
   };
-  template <typename T> struct get_lightuserdata<T*> {
+  template <typename T>
+  struct get_lightuserdata<T*> {
     static T* get(const val& v) { return (T*)v.ptr; }
   };
-  template <typename T> struct get_lightuserdata<ptr<T>> {
+  template <typename T>
+  struct get_lightuserdata<ptr<T>> {
     static ptr<T> get(const val& v) { return luapp11::ptr<T>((T*)v.ptr); }
   };
 
-  template <typename T> struct get_userdata {
+  template <typename T>
+  struct get_userdata {
     static T get(const val& v) {
-      throw luapp11::exception(std::string(
-          "Invalid Type Error: is a userdata, expected: ") + typeid(T).name());
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a userdata, expected: ") +
+          typeid(T).name());
     }
   };
 
-  template <typename T> struct get_userdata<ptr<T>> {
+  template <typename T>
+  struct get_userdata<ptr<T>> {
     static ptr<T> get(const val& v) {
       return luapp11::ptr<T>(userdata<T>::cast(v.ptr));
     }
   };
 
-  template <typename T, class Enable = void> struct popper {
+  template <typename T, class Enable = void>
+  struct popper {
     static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
   };
 
@@ -483,10 +487,10 @@ class val {
   };
 
   struct stack_popper {
-    stack_popper(int start) : idx { start }
-    {}
+    stack_popper(int start) : idx{start} {}
 
-    template <typename T> T get(lua_State* L) {
+    template <typename T>
+    T get(lua_State* L) {
       auto ret = val::popper<T>::get(L, idx);
       idx++;
       return ret;
@@ -496,16 +500,17 @@ class val {
     int idx;
   };
 
-  template <typename ... TArgs>
-  struct popper<std::tuple<TArgs ...>, std::enable_if<true>::type> {
-    static std::tuple<TArgs ...> get(lua_State* L, int idx) {
+  template <typename... TArgs>
+  struct popper<std::tuple<TArgs...>, std::enable_if<true>::type> {
+    static std::tuple<TArgs...> get(lua_State* L, int idx) {
       stack_popper p(idx);
-      return std::tuple<TArgs ...>(p.get<TArgs>(L) ...);
+      return std::tuple<TArgs...>(p.get<TArgs>(L)...);
     }
   };
 
   // Counting
-  template <typename T, class Enable = void> struct counter {
+  template <typename T, class Enable = void>
+  struct counter {
     static int count() { return 1; }
   };
 
@@ -515,25 +520,26 @@ class val {
     static int count() { return 0; }
   };
 
-  template <typename ... TArgs>
-  struct counter<std::tuple<TArgs ...>, std::enable_if<true>::type> {
-    static int count() { return sizeof ...(TArgs); }
+  template <typename... TArgs>
+  struct counter<std::tuple<TArgs...>, std::enable_if<true>::type> {
+    static int count() { return sizeof...(TArgs); }
   };
 
   // Pushing
-  template <typename TArg, typename ... TArgs>
-  static int push_all(lua_State* L, TArg a, TArgs ... args) {
+  template <typename TArg, typename... TArgs>
+  static int push_all(lua_State* L, TArg a, TArgs... args) {
     pusher<TArg>::push(L, a);
-    return 1 + push_all(L, args ...);
+    return 1 + push_all(L, args...);
   }
 
-  template <typename TArg> static int push_all(lua_State* L, TArg a) {
+  template <typename TArg>
+  static int push_all(lua_State* L, TArg a) {
     pusher<TArg>::push(L, a);
     return 1;
   }
 
-  template <typename T, class Enable = void> struct pusher {
-  };
+  template <typename T, class Enable = void>
+  struct pusher {};
 
   template <typename T>
   struct pusher<
@@ -566,9 +572,8 @@ class val {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
   template <typename T>
-  struct pusher<T,
-                typename std::enable_if<
-                    std::is_same<T, unsigned short int>::value>::type> {
+  struct pusher<T, typename std::enable_if<
+                       std::is_same<T, unsigned short int>::value>::type> {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
   template <typename T>
@@ -577,15 +582,13 @@ class val {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
   template <typename T>
-  struct pusher<T,
-                typename std::enable_if<
-                    std::is_same<T, unsigned long int>::value>::type> {
+  struct pusher<T, typename std::enable_if<
+                       std::is_same<T, unsigned long int>::value>::type> {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
   template <typename T>
-  struct pusher<T,
-                typename std::enable_if<
-                    std::is_same<T, unsigned long long int>::value>::type> {
+  struct pusher<T, typename std::enable_if<
+                       std::is_same<T, unsigned long long int>::value>::type> {
     static void push(lua_State* L, const T& num) { lua_pushnumber(L, num); }
   };
 
@@ -614,12 +617,12 @@ class val {
     static void push(lua_State* L, const T& v) { v.push(L); }
   };
 
-  template <typename TRet, typename ... TArgs>
-  struct pusher<std::function<TRet(TArgs ...)>, std::enable_if<true>::type> {
-    typedef std::function<TRet(TArgs ...)> f_type;
+  template <typename TRet, typename... TArgs>
+  struct pusher<std::function<TRet(TArgs...)>, std::enable_if<true>::type> {
+    typedef std::function<TRet(TArgs...)> f_type;
     static int call(lua_State* L) {
       int nargs = lua_gettop(L);
-      if (nargs != sizeof ...(TArgs)) {
+      if (nargs != sizeof...(TArgs)) {
         pusher<const char*>::push(
             L, "C++ function invoked with the wrong number of arguments.");
         lua_error(L);
@@ -628,7 +631,7 @@ class val {
       auto func = *(f_type*)ptr;
       stack_popper p(-nargs);
       try {
-        TRet ret = func(p.get<TArgs>(L) ...);
+        TRet ret = func(p.get<TArgs>(L)...);
         pusher<TRet>::push(L, ret);
       }
       catch (std::exception e) {
@@ -662,21 +665,21 @@ class val {
     }
   };
 
-  template <typename TRet, typename ... TArgs>
-  struct pusher<TRet(*)(TArgs ...), std::enable_if<true>::type> {
-    typedef TRet(*f_type)(TArgs ...);
+  template <typename TRet, typename... TArgs>
+  struct pusher<TRet (*)(TArgs...), std::enable_if<true>::type> {
+    typedef TRet (*f_type)(TArgs...);
     static int call(lua_State* L) {
       int nargs = lua_gettop(L);
-      if (nargs != sizeof ...(TArgs)) {
+      if (nargs != sizeof...(TArgs)) {
         pusher<const char*>::push(
             L, "C++ function invoked with the wrong number of arguments.");
         lua_error(L);
       }
       void* ptr = lua_touserdata(L, lua_upvalueindex(1));
-      auto func = (f_type) ptr;
+      auto func = (f_type)ptr;
       stack_popper p(-nargs);
       try {
-        TRet ret = func(p.get<TArgs>(L) ...);
+        TRet ret = func(p.get<TArgs>(L)...);
         pusher<TRet>::push(L, ret);
       }
       catch (std::exception e) {
@@ -718,9 +721,8 @@ class val {
   template <typename TFrom, typename TTo>
   struct pusher<std::initializer_list<std::pair<TFrom, TTo>>,
                 std::enable_if<true>::type> {
-    static void push(
-        lua_State* L,
-        const std::initializer_list<std::pair<TFrom, TTo>>& map) {
+    static void push(lua_State* L,
+                     const std::initializer_list<std::pair<TFrom, TTo>>& map) {
       lua_newtable(L);
       for (auto& i : map) {
         pusher<TFrom>::push(L, i.first);
@@ -756,7 +758,8 @@ class val {
     }
   };
 
-  template <typename T> struct pusher<std::set<T>, std::enable_if<true>::type> {
+  template <typename T>
+  struct pusher<std::set<T>, std::enable_if<true>::type> {
     static void push(lua_State* L, const std::set<T>& set) {
       lua_newtable(L);
       for (auto& i : set) {
@@ -799,10 +802,14 @@ class val {
   type type_;
   friend class var;
   friend val chunk(const std::string& str);
-  template <typename T> friend void detail::push_func(T);
+  template <typename T>
+  friend void detail::push_func(T);
 };
 
 namespace detail {
-template <typename T> void push_func(T func) { val::pusher<T>::push(func); }
+template <typename T>
+void push_func(T func) {
+  val::pusher<T>::push(func);
+}
 }
 }

@@ -304,9 +304,11 @@ class var {
 
   // Is checking
   template <typename T>
-  bool dirty_is() const {
+  typename std::enable_if<std::is_arithmetic<T>::value, bool>::type dirty_is()
+      const {
     push();
-    return typed_is<T>::is(L);
+    return !lua_isnoneornil(L, -1) &&
+           (lua_isboolean(L, -1) || lua_isnumber(L, -1));
   }
 
   template <typename T, class Enable = void>

@@ -4,8 +4,7 @@ namespace luapp11 {
 
 class global {
  public:
-  global() : L { luaL_newstate() }
-  {
+  global() : L{luaL_newstate()} {
     luaL_openlibs(L);
     lua_atpanic(L, &panic);
   }
@@ -46,5 +45,4 @@ inline error do_file(const std::string& path) {
   }
   return error();
 }
-
 }
