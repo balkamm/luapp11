@@ -2,7 +2,7 @@
 
 #include <typeinfo>
 #include <string>
-#include "luapp11/internal/fwd.hpp"
+#include "luapp11/fwd.hpp"
 
 namespace luapp11 {
 
