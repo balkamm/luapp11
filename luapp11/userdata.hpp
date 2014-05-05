@@ -91,7 +91,7 @@ class userdata {
     void reg(lua_State* L, std::string name) {
       T func;
       lua_pushstring(L, name.c_str());
-      detail::push_func(func);
+      internal::push_func(func);
       lua_settable(L, -3);
     }
   };
@@ -106,7 +106,7 @@ class userdata {
                              decltype(&T::operator+)>::value>::type> {
     static void reg(lua_State* L) {
       lua_pushstring(L, "__add");
-      detail::push_func(&T::operator+);
+      internal::push_func(&T::operator+);
       lua_settable(L, -3);
     }
   };
