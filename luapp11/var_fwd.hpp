@@ -1,8 +1,10 @@
 #pragma once
 
 #include "luapp11/fwd.hpp"
+#include "luapp11/internal/iterator_fwd.hpp"
 
 namespace luapp11 {
+
 class var {
  public:
   var(const var& other) = default;
@@ -145,14 +147,15 @@ class var {
   template <typename T, typename... TArgs>
   ptr<T> create(TArgs... args);
 
-  friend class var_iterator;
-  friend class var_const_iterator;
-  var_iterator begin();
-  var_iterator end();
-  var_const_iterator begin() const;
-  var_const_iterator end() const;
-  // const var_iterator& cbegin() const { return var_iterator(*this); }
-  // const var_iterator& cend() const { return var_iterator(L, 0); }
+  typedef internal::iterator<var> iterator;
+  typedef internal::iterator<const var> const_iterator;
+
+  iterator begin();
+  iterator end();
+  const_iterator begin() const;
+  const_iterator end() const;
+  const_iterator cbegin() const;
+  const_iterator cend() const;
 
  private:
   // Pushing
@@ -175,8 +178,6 @@ class var {
   std::vector<val> lineage_;
   int virtual_index_;
 
-  friend class global;
-  template <typename T>
-  friend class userdata;
+  friend class internal::core_access;
 };
 }

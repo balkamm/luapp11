@@ -16,12 +16,12 @@ class exception : public std::exception {
                << std::endl;
   }
 
- private:
   exception(std::string what) : what_(what), stack_() {}
 
   exception(std::string what, lua_State* L)
       : what_(what), stack_(stackdump(L)) {}
 
+ private:
   static std::string stackdump(lua_State* L) {
     std::stringstream ss;
     ss << "Stack Dump:" << std::endl;

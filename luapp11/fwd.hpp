@@ -7,9 +7,10 @@ extern "C" {
 }
 
 namespace luapp11 {
+namespace internal {
+class core_access;
+}
 class var;
-class var_iterator;
-class var_const_iterator;
 
 class val;
 

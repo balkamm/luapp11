@@ -1,6 +1,13 @@
 #pragma once
 
+#include <unordered_set>
+#include "luapp11/fwd.hpp"
+#include "luapp11/internal/core_access.hpp"
+
 namespace luapp11 {
+class core_access {
+ public:
+};
 namespace internal {
 // Getting
 template <typename T, class Enable = void>
@@ -142,7 +149,7 @@ struct get_table {
 
 template <typename T>
 struct get_table<
-    T, typename std::enable_if<std::is_same<T, table_type>::value>::type> {
+    T, typename std::enable_if<std::is_same<T, val::table_type>::value>::type> {
   static T get(const val& v) { return *v.table; }
 };
 
@@ -206,7 +213,7 @@ struct stack_popper {
 
   template <typename T>
   T get(lua_State* L) {
-    auto ret = val::popper<T>::get(L, idx);
+    auto ret = popper<T>::get(L, idx);
     idx++;
     return ret;
   }
@@ -240,6 +247,9 @@ struct counter<std::tuple<TArgs...>, std::enable_if<true>::type> {
 };
 
 // Pushing
+template <typename T, class Enable = void>
+struct pusher {};
+
 template <typename TArg, typename... TArgs>
 static int push_all(lua_State* L, TArg a, TArgs... args) {
   pusher<TArg>::push(L, a);
@@ -251,9 +261,6 @@ static int push_all(lua_State* L, TArg a) {
   pusher<TArg>::push(L, a);
   return 1;
 }
-
-template <typename T, class Enable = void>
-struct pusher {};
 
 template <typename T>
 struct pusher<T,
@@ -326,7 +333,7 @@ struct pusher<
 
 template <typename T>
 struct pusher<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
-  static void push(lua_State* L, const T& v) { v.push(L); }
+  static void push(lua_State* L, const T& v) { core_access::push(v, L); }
 };
 
 template <typename TRet, typename... TArgs>

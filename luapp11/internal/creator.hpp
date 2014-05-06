@@ -1,5 +1,7 @@
 #pragma once
 
+#include "luapp11/fwd.hpp"
+
 namespace luapp11 {
 namespace internal {
 template <typename T, class Enable = void>

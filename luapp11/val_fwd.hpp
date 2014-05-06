@@ -27,9 +27,7 @@ class val {
   T get();
 
   friend bool operator==(const val& a, const val& b);
-
   friend bool operator!=(const val& a, const val& b);
-
   val& operator=(val other);
 
   friend void swap(val& a, val& b);
@@ -70,7 +68,7 @@ class val {
 
   val(lua_State* L, type t);
   val(lua_State* L, int idx);
-  val(lua_State* L);
+  explicit val(lua_State* L);
 
   val(const std::string& str, type t);
 
@@ -95,7 +93,6 @@ class val {
   };
 
   type type_;
-  friend class var;
-  friend val chunk(const std::string& str);
+  friend class internal::core_access;
 };
 }

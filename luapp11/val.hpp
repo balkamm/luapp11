@@ -1,8 +1,7 @@
 #pragma once
 
-#include "luapp11/internal/stack_guard.hpp"
-#include "luapp11/exception.hpp"
-#include "luapp11/ptr.hpp"
+#include "luapp11/fwd.hpp"
+#include "luapp11/internal/stack.hpp"
 #include <memory>
 #include <utility>
 #include <map>
@@ -67,19 +66,19 @@ template <typename T>
 T val::get() {
   switch (type_) {
     case type::number:
-      return get_number<T>::get(*this);
+      return internal::get_number<T>::get(*this);
     case type::boolean:
-      return get_boolean<T>::get(*this);
+      return internal::get_boolean<T>::get(*this);
     case type::string:
-      return get_string<T>::get(*this);
+      return internal::get_string<T>::get(*this);
     case type::nil:
-      return get_nil<T>::get(*this);
+      return internal::get_nil<T>::get(*this);
     case type::table:
-      return get_table<T>::get(*this);
+      return internal::get_table<T>::get(*this);
     case type::lightuserdata:
-      return get_lightuserdata<T>::get(*this);
+      return internal::get_lightuserdata<T>::get(*this);
     case type::userdata:
-      return get_userdata<T>::get(*this);
+      return internal::get_userdata<T>::get(*this);
     case type::thread:
     default:
       throw luapp11::exception("Invalid Type Error");
@@ -91,17 +90,17 @@ bool operator==(const val& a, const val& b) {
     return false;
   }
   switch (a.type_) {
-    case type::number:
+    case val::type::number:
       return a.num == b.num;
-    case type::boolean:
+    case val::type::boolean:
       return a.boolean == b.boolean;
-    case type::string:
+    case val::type::string:
       return strcmp(a.str, b.str) == 0;
 
-    case type::nil:
-    case type::table:
-    case type::thread:
-    case type::lightuserdata:
+    case val::type::nil:
+    case val::type::table:
+    case val::type::thread:
+    case val::type::lightuserdata:
       return a.ptr == b.ptr;
     default:
       luapp11::exception("Bad Type.");
@@ -120,54 +119,54 @@ void swap(val& a, val& b) {
   using std::swap;
   swap(a.type_, b.type_);
   switch (a.type_) {
-    case type::nil:
-    case type::lightuserdata:
+    case val::type::nil:
+    case val::type::lightuserdata:
       swap(a.ptr, b.ptr);
       break;
-    case type::number:
+    case val::type::number:
       swap(a.num, b.num);
       break;
-    case type::boolean:
+    case val::type::boolean:
       swap(a.boolean, b.boolean);
       break;
-    case type::table:
+    case val::type::table:
       swap(a.table, b.table);
       break;
-    case type::thread:
+    case val::type::thread:
       swap(a.thread, b.thread);
       break;
-    case type::string:
+    case val::type::string:
       swap(a.str, b.str);
       break;
-    case type::none:
-    case type::lua_function:
-    case type::userdata:
+    case val::type::none:
+    case val::type::lua_function:
+    case val::type::userdata:
       break;
   }
 }
 
 std::ostream& operator<<(std::ostream& out, const val& v) {
   switch (v.type_) {
-    case type::nil:
+    case val::type::nil:
       out << "nil:nil";
       break;
-    case type::lightuserdata:
+    case val::type::lightuserdata:
       out << "lightuserdata:" << v.ptr;
       break;
-    case type::number:
+    case val::type::number:
       out << "number:" << v.num;
       break;
-    case type::boolean:
+    case val::type::boolean:
       out << "boolean:" << v.boolean;
       break;
-    case type::string:
+    case val::type::string:
       out << "string:" << v.str;
       break;
-    case type::thread:
-    case type::none:
-    case type::table:
-    case type::lua_function:
-    case type::userdata:
+    case val::type::thread:
+    case val::type::none:
+    case val::type::table:
+    case val::type::lua_function:
+    case val::type::userdata:
       break;
   }
   return out;
