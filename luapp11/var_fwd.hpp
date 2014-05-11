@@ -1,7 +1,7 @@
 #pragma once
 
 #include "luapp11/fwd.hpp"
-#include "luapp11/internal/iterator_fwd.hpp"
+#include "luapp11/stack_var_fwd.h"
 
 namespace luapp11 {
 
@@ -9,6 +9,12 @@ class var {
  public:
   var(const var& other) = default;
   var(var&& other) = default;
+
+  /**
+   * Pushes this variable onto the stack.
+   * @return a stack_var which refers to the value on the stack.
+   */
+  stack_var localize() const;
 
   /**
    * Gets the value from this place in the lua environment.
@@ -90,8 +96,6 @@ class var {
   template <typename T>
   bool operator==(const T& other) const;
 
-  bool operator!=(const var& other) const;
-
   template <typename T>
   bool operator!=(const T& other) const;
 
@@ -147,16 +151,6 @@ class var {
   template <typename T, typename... TArgs>
   ptr<T> create(TArgs... args);
 
-  typedef internal::iterator<var> iterator;
-  typedef internal::iterator<const var> const_iterator;
-
-  iterator begin();
-  iterator end();
-  const_iterator begin() const;
-  const_iterator end() const;
-  const_iterator cbegin() const;
-  const_iterator cend() const;
-
  private:
   // Pushing
   void push_parent_key() const;
@@ -180,4 +174,10 @@ class var {
 
   friend class internal::core_access;
 };
+}
+
+namespace std {
+string to_string(const luapp11::var& v, string indent = "") {
+  return std::to_string(v.localize(), indent);
+}
 }

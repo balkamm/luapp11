@@ -14,11 +14,13 @@
 #include "luapp11/ptr.hpp"
 
 namespace luapp11 {
-val var::get_value() const {
+stack_var var::localize() const {
   internal::stack_guard g(L);
   push();
-  return internal::core_access::make_val(L);
+  return internal::core_access::make_stack_var(L, lua_gettop(L), std::move(g));
 }
+
+val var::get_value() const { return localize().get_value(); }
 
 template <typename T>
 T var::get() const {
@@ -31,15 +33,11 @@ bool var::is() const {
   return dirty_is<T>();
 }
 
-bool var::is_table() const {
-  internal::stack_guard g(L);
-  return !lua_isnoneornil(L, -1) && lua_istable(L, -1);
-}
+bool var::is_table() const { return localize().is_table(); }
 
 template <typename T>
 T var::as(T&& fallback) const {
-  internal::stack_guard g(L);
-  return dirty_is<T>() ? internal::core_access::make_val(L).get<T>() : fallback;
+  return localize().as<T>(std::forward(fallback));
 }
 
 var& var::operator=(const var& var) {
@@ -103,8 +101,6 @@ bool var::operator==(const T& other) const {
   return get<T>() == other;
 }
 
-bool var::operator!=(const var& other) const { return !(operator==(other)); }
-
 template <typename T>
 bool var::operator!=(const T& other) const {
   return !(operator==(other));
@@ -115,26 +111,17 @@ var var::operator[](var idx) const { return var(*this, idx.get_value()); }
 
 template <typename... TArgs>
 result<void> var::operator()(TArgs... args) const {
-  return invoke<void>(args...);
+  return localize()(std::forward(args)...);
 }
 
 template <typename TOut, typename... TArgs>
 result<TOut> var::invoke(TArgs... args) const {
-  internal::stack_guard g(L);
-  if (dirty_is<TOut(TArgs...)>()) {
-    internal::push_all<TArgs...>(L, args...);
-    return internal::caller<TOut>::pcall(L, sizeof...(TArgs));
-  }
-  throw exception("Tried to invoke non-function.", L);
+  return localize().invoke<TOut>(std::forward(args)...);
 }
 
 template <typename TOut>
 result<TOut> var::invoke() const {
-  internal::stack_guard g(L);
-  if (dirty_is<TOut()>()) {
-    return internal::caller<TOut>::pcall(L, 0);
-  }
-  throw exception("Tried to invoke non-function.", L);
+  return localize().invoke<TOut>();
 }
 
 error var::do_chunk(const std::string& str) {
@@ -171,17 +158,10 @@ template <typename T, typename... TArgs>
 ptr<T> var::create(TArgs... args) {
   internal::stack_guard g(L);
   push_parent_key();
-  internal::do_create<T>::create(*this, args...);
+  internal::do_create<T>::create(*this, std::forward(args)...);
   lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
   return get<ptr<T>>();
 }
-
-var::iterator var::begin() { return var::iterator(*this); }
-var::iterator var::end() { return var::iterator(L, 0); }
-var::const_iterator var::begin() const { return var::const_iterator(*this); }
-var::const_iterator var::end() const { return var::const_iterator(L, 0); }
-var::const_iterator var::cbegin() const { return var::const_iterator(*this); }
-var::const_iterator var::cend() const { return var::const_iterator(L, 0); }
 
 void var::push_parent_key() const {
   bool first = true;
@@ -233,20 +213,5 @@ var::var(lua_State* L, int virtual_index, val key)
 var::var(var v, val key)
     : L{v.L}, virtual_index_{v.virtual_index_}, lineage_{v.lineage_} {
   lineage_.push_back(key);
-}
-}
-
-namespace std {
-string to_string(const luapp11::var& v, string indent = "") {
-  if (!v.is_table()) {
-    return v.as<string>("Nil");
-  }
-  string str = "{\n";
-  for (auto iter = v.begin(); iter != v.end(); ++iter) {
-    str += indent + iter->first.get<string>() + ":" +
-           to_string(iter->second, indent + "  ") + "\n";
-  }
-  str += "}\n";
-  return str;
 }
 }
