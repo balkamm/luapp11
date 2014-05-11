@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <utility>
 
 #include "luapp11/var_fwd.hpp"
 #include "luapp11/internal/traits.hpp"
@@ -37,7 +38,7 @@ bool var::is_table() const { return localize().is_table(); }
 
 template <typename T>
 T var::as(T&& fallback) const {
-  return localize().as<T>(std::forward(fallback));
+  return localize().as<T>(std::forward<T>(fallback));
 }
 
 var& var::operator=(const var& var) {
@@ -111,12 +112,12 @@ var var::operator[](var idx) const { return var(*this, idx.get_value()); }
 
 template <typename... TArgs>
 result<void> var::operator()(TArgs... args) const {
-  return localize()(std::forward(args)...);
+  return localize()(std::forward<TArgs>(args)...);
 }
 
 template <typename TOut, typename... TArgs>
 result<TOut> var::invoke(TArgs... args) const {
-  return localize().invoke<TOut>(std::forward(args)...);
+  return localize().invoke<TOut>(std::forward<TArgs>(args)...);
 }
 
 template <typename TOut>

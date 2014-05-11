@@ -3,6 +3,9 @@
 #include "luapp11/fwd.hpp"
 #include <utility>
 
+#define ACCESS_MEMBER(type, mtype, name) \
+  static mtype get_##type##_##name(type t) { return t.name; }
+
 namespace luapp11 {
 namespace internal {
 class core_access {
@@ -30,6 +33,15 @@ class core_access {
   static void push(const var& v) { v.push(); }
 
   static lua_State* state(const var& v) { return v.L; }
+
+  ACCESS_MEMBER(val, void*, ptr);
+  ACCESS_MEMBER(val, bool, boolean);
+  ACCESS_MEMBER(val, lua_Number, num);
+  ACCESS_MEMBER(val, const char*, str);
+  ACCESS_MEMBER(val, lua_State*, thread);
+  ACCESS_MEMBER(val, std::shared_ptr<val::table_type>, table);
 };
 }
 }
+
+#undef ACCESS_MEMBER
