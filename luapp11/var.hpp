@@ -96,7 +96,7 @@ class var {
   var& operator=(const T& toSet) {
     internal::stack_guard g(L);
     push_parent_key();
-    val::pusher<
+    internal::pusher<
         typename detail::convert_functor_to_std_function<T>::type>::push(L,
                                                                          toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
@@ -112,7 +112,7 @@ class var {
   var& operator=(const std::initializer_list<T>& toSet) {
     internal::stack_guard g(L);
     push_parent_key();
-    val::pusher<std::initializer_list<T>>::push(L, toSet);
+    internal::pusher<std::initializer_list<T>>::push(L, toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -125,7 +125,7 @@ class var {
   var& operator=(const std::initializer_list<val>& toSet) {
     internal::stack_guard g(L);
     push_parent_key();
-    val::pusher<std::initializer_list<val>>::push(L, toSet);
+    internal::pusher<std::initializer_list<val>>::push(L, toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -138,7 +138,8 @@ class var {
   var& operator=(const std::initializer_list<std::pair<val, val>>& toSet) {
     internal::stack_guard g(L);
     push_parent_key();
-    val::pusher<std::initializer_list<std::pair<val, val>>>::push(L, toSet);
+    internal::pusher<std::initializer_list<std::pair<val, val>>>::push(L,
+                                                                       toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -243,11 +244,25 @@ class var {
     return error();
   }
 
+  template <typename T, class Enable = void>
+  struct do_create {};
+
+  template <typename T>
+  struct do_create<T, typename std::enable_if<
+                          std::is_base_of<userdata<T>, T>::value>::type> {
+    template <typename... TArgs>
+    static void create(const var& v, TArgs... args) {
+      auto ptr = lua_newuserdata(v.L, sizeof(T));
+      new (ptr) T(args...);
+      v.setup_metatable<T>();
+    }
+  };
+
   template <typename T, typename... TArgs>
   ptr<T> create(TArgs... args) {
     internal::stack_guard g(L);
     push_parent_key();
-    internal::do_create<T>::create(*this, std::forward(args)...);
+    do_create<T>::create(*this, std::forward<TArgs>(args)...);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return get<ptr<T>>();
   }
@@ -287,7 +302,7 @@ class var {
       if (lua_isnoneornil(L, -1)) {
         lua_pop(L, 1);
         lua_newtable(L);
-        // userdata<T>::init_func(L);
+        userdata<T>::init_func(L);
         lua_setfield(L, -2, name);
         lua_getfield(L, -1, name);
       }

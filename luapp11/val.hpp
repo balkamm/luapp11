@@ -6,6 +6,12 @@
 #include <cstring>
 
 namespace luapp11 {
+namespace internal {
+template <typename T, typename Enable>
+class pusher;
+template <typename T, typename Enable>
+class popper;
+}
 class val {
  public:
   val() : type_{type::nil}, ptr{nullptr} {}
@@ -71,8 +77,8 @@ class val {
         return get_table<T>::get(*this);
       case type::lightuserdata:
         return get_lightuserdata<T>::get(*this);
-      case type::userdata:
-        return get_userdata<T>::get(*this);
+      // case type::userdata:
+      //   return get_userdata<T>::get(*this);
       case type::thread:
       default:
         throw luapp11::exception("Invalid Type Error");
@@ -134,7 +140,7 @@ class val {
         break;
       case type::none:
       case type::lua_function:
-      case type::userdata:
+        // case type::userdata:
         break;
     }
   }
@@ -160,7 +166,7 @@ class val {
       case type::none:
       case type::table:
       case type::lua_function:
-      case type::userdata:
+        // case type::userdata:
         break;
     }
     return out;
@@ -182,7 +188,179 @@ class val {
   typedef std::function<lua_CFunction> function_type;
 
  private:
-#include "luapp11/internal/stack.hpp"
+  // Getting
+  template <typename T, class Enable = void>
+  struct get_number {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a number, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_number<
+      T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+    static T get(const val& v) { return v.num; }
+  };
+
+  template <typename T>
+  struct get_number<
+      T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+    static T get(const val& v) {
+      std::stringstream ss;
+      ss << v.num;
+      return ss.str();
+    }
+  };
+
+  template <typename T, class Enable = void>
+  struct get_boolean {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a boolean, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_boolean<
+      T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
+    static T get(const val& v) { return v.boolean; }
+  };
+
+  template <typename T, class Enable = void>
+  struct get_string {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a string, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
+    static T get(const val& v) { return std::string(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, bool>::value>::type> {
+    static T get(const val& v) { return true; }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, int>::value>::type> {
+    static T get(const val& v) { return std::stoi(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long>::value>::type> {
+    static T get(const val& v) { return std::stol(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long long>::value>::type> {
+    static T get(const val& v) { return std::stoll(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, unsigned long>::value>::type> {
+    static T get(const val& v) { return std::stoul(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<T, typename std::enable_if<
+                           std::is_same<T, unsigned long long>::value>::type> {
+    static T get(const val& v) { return std::stoull(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, float>::value>::type> {
+    static T get(const val& v) { return std::stof(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, double>::value>::type> {
+    static T get(const val& v) { return std::stod(v.str); }
+  };
+
+  template <typename T>
+  struct get_string<
+      T, typename std::enable_if<std::is_same<T, long double>::value>::type> {
+    static T get(const val& v) { return std::stold(v.str); }
+  };
+
+  template <typename T, class Enable = void>
+  struct get_nil {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a nil, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_nil<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
+    static T get(const val& v) { return nullptr; }
+  };
+
+  template <typename T>
+  struct get_nil<T,
+                 typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+    static T get(const val& v) { return (T)NULL; }
+  };
+
+  template <typename T, class Enable = void>
+  struct get_table {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a table, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_table<
+      T, typename std::enable_if<std::is_same<T, table_type>::value>::type> {
+    static T get(const val& v) { return *v.table; }
+  };
+
+  template <typename T, class Enable = void>
+  struct get_function {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a function, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  // template <typename T>
+  // struct get_function<
+  //     T, typename std::enable_if<std::is_function<T>::value>::type> {
+  //   static T get(const val& v) { return dynamic_cast<T>(v.func); }
+  // };
+
+  template <typename T>
+  struct get_lightuserdata {
+    static T get(const val& v) { return *(T*)v.ptr; }
+  };
+  template <typename T>
+  struct get_lightuserdata<T*> {
+    static T* get(const val& v) { return (T*)v.ptr; }
+  };
+  template <typename T>
+  struct get_lightuserdata<ptr<T>> {
+    static ptr<T> get(const val& v) { return luapp11::ptr<T>((T*)v.ptr); }
+  };
+
   enum class type : int {
     none = LUA_TNONE,
     nil = LUA_TNIL,
@@ -191,7 +369,7 @@ class val {
     string = LUA_TSTRING,
     table = LUA_TTABLE,
     lua_function = LUA_TFUNCTION,
-    userdata = LUA_TUSERDATA,
+    // userdata = LUA_TUSERDATA,
     thread = LUA_TTHREAD,
     lightuserdata = LUA_TLIGHTUSERDATA,
   };
@@ -219,9 +397,9 @@ class val {
       case type::lightuserdata:
         ptr = const_cast<void*>(lua_topointer(L, idx));
         break;
-      case type::userdata:
-        ptr = lua_touserdata(L, idx);
-        break;
+      // case type::userdata:
+      //   ptr = lua_touserdata(L, idx);
+      //   break;
 
       default:
         throw luapp11::exception("Bad Type.", L);
@@ -298,5 +476,8 @@ class val {
   type type_;
   friend class stack_var;
   friend class var;
+  friend class internal::pusher<val, void>;
+  template <typename T, typename Enable>
+  friend class internal::popper;
 };
 }

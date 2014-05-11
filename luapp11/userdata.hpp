@@ -2,10 +2,10 @@
 
 #include <typeinfo>
 #include <string>
+#include "luapp11/val.hpp"
+#include "luapp11/internal/stack.hpp"
 
 namespace luapp11 {
-
-class val;
 
 template <typename TDerived>
 class userdata {

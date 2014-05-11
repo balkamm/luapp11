@@ -95,7 +95,7 @@ class stack_var {
   template <typename T>
   void assign(val key, const std::initializer_list<T>& toSet) {
     key.push(L);
-    val::pusher<std::initializer_list<T>>::push(L, toSet);
+    internal::pusher<std::initializer_list<T>>::push(L, toSet);
     lua_settable(L, index_);
   }
 
@@ -106,7 +106,7 @@ class stack_var {
    */
   void assign(val key, const std::initializer_list<val>& toSet) {
     key.push(L);
-    val::pusher<std::initializer_list<val>>::push(L, toSet);
+    internal::pusher<std::initializer_list<val>>::push(L, toSet);
     lua_settable(L, index_);
   }
 
@@ -118,7 +118,8 @@ class stack_var {
   void assign(val key,
               const std::initializer_list<std::pair<val, val>>& toSet) {
     key.push(L);
-    val::pusher<std::initializer_list<std::pair<val, val>>>::push(L, toSet);
+    internal::pusher<std::initializer_list<std::pair<val, val>>>::push(L,
+                                                                       toSet);
     lua_settable(L, index_);
   }
 
@@ -177,7 +178,7 @@ class stack_var {
   template <typename TOut, typename... TArgs>
   result<TOut> invoke(TArgs... args) const {
     if (is<TOut(TArgs...)>()) {
-      val::push_all<TArgs...>(L, args...);
+      internal::push_all<TArgs...>(L, args...);
       return caller<TOut>::pcall(L, sizeof...(TArgs));
     }
     throw exception("Tried to invoke non-function.", L);
@@ -273,14 +274,14 @@ class stack_var {
   struct caller {
     static result<T> call(lua_State* L, int nargs) {
       lua_call(L, nargs, 1);
-      return val::popper<T>::get(L, -1);
+      return internal::popper<T>::get(L, -1);
     }
     static result<T> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, 1, 0);
       if (err) {
         return error(err, "Error calling lua method.", L);
       }
-      return val::popper<T>::get(L, -1);
+      return internal::popper<T>::get(L, -1);
     }
   };
 
@@ -303,16 +304,16 @@ class stack_var {
   struct caller<std::tuple<TArgs...>, std::enable_if<true>::type> {
     static result<std::tuple<TArgs...>> call(lua_State* L, int nargs) {
       lua_call(L, nargs, sizeof...(TArgs));
-      return val::popper<std::tuple<TArgs...>>::get(L,
-                                                    (int)sizeof...(TArgs) * -1);
+      return internal::popper<std::tuple<TArgs...>>::get(
+          L, (int)sizeof...(TArgs) * -1);
     }
     static result<std::tuple<TArgs...>> pcall(lua_State* L, int nargs) {
       auto err = lua_pcall(L, nargs, sizeof...(TArgs), 0);
       if (err) {
         return error(err, "Error calling lua method.", L);
       }
-      return val::popper<std::tuple<TArgs...>>::get(L,
-                                                    (int)sizeof...(TArgs) * -1);
+      return internal::popper<std::tuple<TArgs...>>::get(
+          L, (int)sizeof...(TArgs) * -1);
     }
   };
 
