@@ -3,22 +3,6 @@
 namespace luapp11 {
 namespace internal {
 
-// template <typename T>
-// struct get_userdata {
-//   static T get(const val& v) {
-//     throw luapp11::exception(
-//         std::string("Invalid Type Error: is a userdata, expected: ") +
-//         typeid(T).name());
-//   }
-// };
-
-// template <typename T>
-// struct get_userdata<ptr<T>> {
-//   static ptr<T> get(const val& v) {
-//     return luapp11::ptr<T>(userdata<T>::cast(v.ptr));
-//   }
-// };
-
 template <typename T, class Enable = void>
 struct popper {
   static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }

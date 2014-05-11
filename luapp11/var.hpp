@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "luapp11/internal/traits.hpp"
-#include "luapp11/internal/creator.hpp"
+#include "luapp11/internal/type_registry.hpp"
 #include "luapp11/ptr.hpp"
 
 namespace luapp11 {
@@ -96,9 +96,8 @@ class var {
   var& operator=(const T& toSet) {
     internal::stack_guard g(L);
     push_parent_key();
-    internal::pusher<
-        typename detail::convert_functor_to_std_function<T>::type>::push(L,
-                                                                         toSet);
+    internal::pusher<typename internal::convert_functor_to_std_function<
+        T>::type>::push(L, toSet);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return *this;
   }
@@ -254,7 +253,8 @@ class var {
     static void* create(const var& v, TArgs... args) {
       auto ptr = lua_newuserdata(v.L, sizeof(T));
       new (ptr) T(args...);
-      v.setup_metatable<T>();
+      internal::type_registry::register_type<T>(v.L, &userdata<T>::init_func);
+      lua_setmetatable(v.L, -2);
       return ptr;
     }
   };

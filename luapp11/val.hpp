@@ -5,6 +5,8 @@
 #include <utility>
 #include <cstring>
 
+#include "luapp11/internal/type_registry.hpp"
+
 namespace luapp11 {
 namespace internal {
 template <typename T, typename Enable>
@@ -77,8 +79,8 @@ class val {
         return get_table<T>::get(*this);
       case type::lightuserdata:
         return get_lightuserdata<T>::get(*this);
-      // case type::userdata:
-      //   return get_userdata<T>::get(*this);
+      case type::userdata:
+        return get_userdata<T>::get(*this);
       case type::thread:
       default:
         throw luapp11::exception("Invalid Type Error");
@@ -141,7 +143,7 @@ class val {
         break;
       case type::none:
       case type::lua_function:
-        // case type::userdata:
+      case type::userdata:
         break;
     }
   }
@@ -167,7 +169,7 @@ class val {
       case type::none:
       case type::table:
       case type::lua_function:
-        // case type::userdata:
+      case type::userdata:
         break;
     }
     return out;
@@ -362,6 +364,22 @@ class val {
     static ptr<T> get(const val& v) { return luapp11::ptr<T>((T*)v.ptr); }
   };
 
+  template <typename T>
+  struct get_userdata {
+    static T get(const val& v) {
+      throw luapp11::exception(
+          std::string("Invalid Type Error: is a userdata, expected: ") +
+          typeid(T).name());
+    }
+  };
+
+  template <typename T>
+  struct get_userdata<ptr<T>> {
+    static ptr<T> get(const val& v) {
+      return luapp11::ptr<T>(internal::type_registry::cast<T>(v.ptr));
+    }
+  };
+
   enum class type : int {
     none = LUA_TNONE,
     nil = LUA_TNIL,
@@ -370,7 +388,7 @@ class val {
     string = LUA_TSTRING,
     table = LUA_TTABLE,
     lua_function = LUA_TFUNCTION,
-    // userdata = LUA_TUSERDATA,
+    userdata = LUA_TUSERDATA,
     thread = LUA_TTHREAD,
     lightuserdata = LUA_TLIGHTUSERDATA,
   };
@@ -398,9 +416,9 @@ class val {
       case type::lightuserdata:
         ptr = const_cast<void*>(lua_topointer(L, idx));
         break;
-      // case type::userdata:
-      //   ptr = lua_touserdata(L, idx);
-      //   break;
+      case type::userdata:
+        ptr = lua_touserdata(L, idx);
+        break;
 
       default:
         throw luapp11::exception(
