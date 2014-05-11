@@ -12,7 +12,7 @@ struct stack_guard {
   stack_guard(lua_State* state, bool ret = false)
       : state_{state}, initTop_{lua_gettop(state)}, ret_{ret} {}
   stack_guard(const stack_guard&) = delete;
-  stack_guard(stack_guard&& other) {
+  stack_guard(stack_guard&& other) : state_(nullptr), initTop_(0), ret_(false) {
     using std::swap;
     swap(state_, other.state_);
     swap(initTop_, other.initTop_);
@@ -20,12 +20,14 @@ struct stack_guard {
   }
 
   ~stack_guard() {
-    auto toPop = lua_gettop(state_) - initTop_;
-    if (ret_) {
-      toPop--;
-    }
-    if (toPop > 0) {
-      lua_pop(state_, toPop);
+    if (state_) {
+      auto toPop = lua_gettop(state_) - initTop_;
+      if (ret_) {
+        toPop--;
+      }
+      if (toPop > 0) {
+        lua_pop(state_, toPop);
+      }
     }
   }
 };
