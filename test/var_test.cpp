@@ -1,5 +1,6 @@
 #include "catch.hpp"
 #include "luapp11/lua.hpp"
+#include <unordered_set>
 
 using namespace luapp11;
 
@@ -118,60 +119,47 @@ TEST_CASE("var_test/assign", "assign test") {
   CHECK(node.get<int>() == node2.get<int>());
   CHECK(node != node2);
 
-  std::vector<std::string> words({
-    "foo", "bar", "baz"
-  });
+  std::vector<std::string> words({"foo", "bar", "baz"});
   auto vec = global["vec"] = words;
   CHECK(vec[1] == words[0]);
   CHECK(vec[2] == words[1]);
   CHECK(vec[3] == words[2]);
 
-  auto init = global["init"] = { "foo", "bar", "baz" };
+  auto init = global["init"] = {"foo", "bar", "baz"};
   CHECK(init[1] == words[0]);
   CHECK(init[2] == words[1]);
   CHECK(init[3] == words[2]);
 
-  auto init2 = global["init2"] = { {"foo",1} , {"bar", 13}, {"baz",7} };
+  auto init2 = global["init2"] = {{"foo", 1}, {"bar", 13}, {"baz", 7}};
   CHECK(init2["foo"] == 1);
   CHECK(init2["bar"] == 13);
   CHECK(init2["baz"] == 7);
 
-  auto init3 = global["init3"] = { 1, "foo", true};
+  auto init3 = global["init3"] = {1, "foo", true};
   CHECK(init3[1] == 1);
   CHECK(init3[2] == std::string("foo"));
   CHECK(init3[3] == true);
 
-  std::set<float> floats({
-    .25f, .5f, .75f
-  });
+  std::set<float> floats({.25f, .5f, .75f});
   auto set = global["set"] = floats;
   CHECK(set[.25f].get<bool>());
   CHECK(set[.5f].get<bool>());
   CHECK(set[.75f].get<bool>());
 
-  std::unordered_set<int> ints({
-    3, 2, 15
-  });
+  std::unordered_set<int> ints({3, 2, 15});
   auto set2 = global["set2"] = ints;
   CHECK(set2[3].get<bool>());
   CHECK(set2[2].get<bool>());
   CHECK(set2[15].get<bool>());
 
-  std::map<std::string, int> mapped({
-    { "foo", 3 }
-    , { "bar", 2 }
-    , { "baz", 15 }
-  });
+  std::map<std::string, int> mapped({{"foo", 3}, {"bar", 2}, {"baz", 15}});
   auto map = global["map"] = mapped;
   CHECK(map["foo"] == mapped["foo"]);
   CHECK(map["bar"] == mapped["bar"]);
   CHECK(map["baz"] == mapped["baz"]);
 
-  std::unordered_map<int, std::string> mapped2({
-    { 3, "foo" }
-    , { 2, "bar" }
-    , { 15, "baz" }
-  });
+  std::unordered_map<int, std::string> mapped2(
+      {{3, "foo"}, {2, "bar"}, {15, "baz"}});
   auto map2 = global["map2"] = mapped2;
   CHECK(map2[3] == mapped2[3]);
   CHECK(map2[2] == mapped2[2]);
@@ -190,23 +178,23 @@ TEST_CASE("var_test/equality", "equality tests") {
 TEST_CASE("var_test/do_chunk", "do_chunk test") {
   auto node = global["test"];
   auto err = node.do_chunk("return 15");
-  CHECK(!(bool) err);
+  CHECK(!(bool)err);
   CHECK(node.get<int>() == 15);
 
   auto node2 = global["test2"];
   auto err2 = node2.do_chunk("Invalid LUA;;");
-  CHECK((bool) err2);
+  CHECK((bool)err2);
 }
 
 TEST_CASE("var_test/do_file", "do_file test") {
   auto node = global["test"];
   auto err = node.do_file("../test/lua/test.lua");
-  CHECK(!(bool) err);
+  CHECK(!(bool)err);
   CHECK(node.get<int>() == 5 * 4 * 3 * 2 * 1);
 
   auto node2 = global["test2"];
   auto err2 = node2.do_chunk("../test/lua/fails.lua");
-  CHECK((bool) err2);
+  CHECK((bool)err2);
 }
 
 TEST_CASE("var_test/operator()", "operator() test") {
@@ -264,8 +252,7 @@ TEST_CASE("var_test/cfunc", "Calling c functions from lua test") {
   CHECK(result.success());
   CHECK(result.value() == 12);
 
-  global["lambda"] = [](int a, int b) { return a + b; }
-  ;
+  global["lambda"] = [](int a, int b) { return a + b; };
   auto func2 = global["func2"];
   func2.do_chunk(
       R"PREFIX(

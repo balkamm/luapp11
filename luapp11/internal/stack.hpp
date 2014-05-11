@@ -1,14 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-#include "luapp11/fwd.hpp"
-#include "luapp11/internal/core_access.hpp"
-
-namespace luapp11 {
-class core_access {
- public:
-};
-namespace internal {
 // Getting
 template <typename T, class Enable = void>
 struct get_number {
@@ -22,7 +13,7 @@ struct get_number {
 template <typename T>
 struct get_number<T,
                   typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static T get(const val& v) { return core_access::get_val_num(v); }
+  static T get(const val& v) { return v.num; }
 };
 
 template <typename T>
@@ -30,7 +21,7 @@ struct get_number<
     T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
   static T get(const val& v) {
     std::stringstream ss;
-    ss << core_access::get_val_num(v);
+    ss << v.num;
     return ss.str();
   }
 };
@@ -47,7 +38,7 @@ struct get_boolean {
 template <typename T>
 struct get_boolean<
     T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
-  static T get(const val& v) { return core_access::get_val_boolean(v); }
+  static T get(const val& v) { return v.boolean; }
 };
 
 template <typename T, class Enable = void>
@@ -62,9 +53,7 @@ struct get_string {
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, std::string>::value>::type> {
-  static T get(const val& v) {
-    return std::string(core_access::get_val_str(v));
-  }
+  static T get(const val& v) { return std::string(v.str); }
 };
 
 template <typename T>
@@ -76,51 +65,49 @@ struct get_string<T,
 template <typename T>
 struct get_string<T,
                   typename std::enable_if<std::is_same<T, int>::value>::type> {
-  static T get(const val& v) { return std::stoi(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stoi(v.str); }
 };
 
 template <typename T>
 struct get_string<T,
                   typename std::enable_if<std::is_same<T, long>::value>::type> {
-  static T get(const val& v) { return std::stol(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stol(v.str); }
 };
 
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, long long>::value>::type> {
-  static T get(const val& v) { return std::stoll(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stoll(v.str); }
 };
 
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, unsigned long>::value>::type> {
-  static T get(const val& v) { return std::stoul(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stoul(v.str); }
 };
 
 template <typename T>
 struct get_string<T, typename std::enable_if<
                          std::is_same<T, unsigned long long>::value>::type> {
-  static T get(const val& v) {
-    return std::stoull(core_access::get_val_str(v));
-  }
+  static T get(const val& v) { return std::stoull(v.str); }
 };
 
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, float>::value>::type> {
-  static T get(const val& v) { return std::stof(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stof(v.str); }
 };
 
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, double>::value>::type> {
-  static T get(const val& v) { return std::stod(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stod(v.str); }
 };
 
 template <typename T>
 struct get_string<
     T, typename std::enable_if<std::is_same<T, long double>::value>::type> {
-  static T get(const val& v) { return std::stold(core_access::get_val_str(v)); }
+  static T get(const val& v) { return std::stold(v.str); }
 };
 
 template <typename T, class Enable = void>
@@ -153,8 +140,8 @@ struct get_table {
 
 template <typename T>
 struct get_table<
-    T, typename std::enable_if<std::is_same<T, val::table_type>::value>::type> {
-  static T get(const val& v) { return *core_access::get_val_table(v); }
+    T, typename std::enable_if<std::is_same<T, table_type>::value>::type> {
+  static T get(const val& v) { return *v.table; }
 };
 
 template <typename T, class Enable = void>
@@ -174,11 +161,11 @@ struct get_function {
 
 template <typename T>
 struct get_lightuserdata {
-  static T get(const val& v) { return *(T*)core_access::get_val_ptr(v); }
+  static T get(const val& v) { return *(T*)v.ptr; }
 };
 template <typename T>
 struct get_lightuserdata<T*> {
-  static T* get(const val& v) { return (T*)core_access::get_val_ptr(v); }
+  static T* get(const val& v) { return (T*)v.ptr; }
 };
 template <typename T>
 struct get_lightuserdata<ptr<T>> {
@@ -194,18 +181,16 @@ struct get_userdata {
   }
 };
 
-template <typename T>
-struct get_userdata<ptr<T>> {
-  static ptr<T> get(const val& v) {
-    return luapp11::ptr<T>(userdata<T>::cast(v.ptr));
-  }
-};
+// template <typename T>
+// struct get_userdata<ptr<T>> {
+//   static ptr<T> get(const val& v) {
+//     return luapp11::ptr<T>(userdata<T>::cast(v.ptr));
+//   }
+// };
 
 template <typename T, class Enable = void>
 struct popper {
-  static T get(lua_State* L, int idx = -1) {
-    return core_access::make_val(L, idx).get<T>();
-  }
+  static T get(lua_State* L, int idx = -1) { return val(L, idx).get<T>(); }
 };
 
 // Popping
@@ -339,7 +324,7 @@ struct pusher<
 
 template <typename T>
 struct pusher<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
-  static void push(lua_State* L, const T& v) { core_access::push(v, L); }
+  static void push(lua_State* L, const T& v) { v.push(L); }
 };
 
 template <typename TRet, typename... TArgs>
@@ -508,6 +493,4 @@ struct pusher<std::unordered_set<T>, std::enable_if<true>::type> {
 template <typename T>
 void push_func(T func) {
   pusher<T>::push(func);
-}
-}
 }

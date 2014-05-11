@@ -1,5 +1,7 @@
 #pragma once
 
+#include "luapp11/exception.hpp"
+
 namespace luapp11 {
 
 template <typename T>
@@ -45,7 +47,7 @@ class result {
     luapp11::error err_;
     T val_;
   };
-  friend class var;
+  friend class stack_var;
 };
 
 template <>
@@ -65,6 +67,6 @@ class result<void> {
 
   bool success_;
   luapp11::error err_;
-  friend class var;
+  friend class stack_var;
 };
 }

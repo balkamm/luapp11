@@ -1,6 +1,4 @@
 #pragma once
-#include "luapp11/fwd.hpp"
-#include "luapp11/internal/core_access.hpp"
 
 namespace luapp11 {
 
@@ -11,9 +9,7 @@ class global {
     lua_atpanic(L, &panic);
   }
 
-  var operator[](val key) const {
-    return internal::core_access::make_var(L, LUA_GLOBALSINDEX, key);
-  }
+  var operator[](val key) const { return var(L, LUA_GLOBALSINDEX, key); }
 
  private:
   static int panic(lua_State* L) { throw luapp11::exception("lua panic", L); }

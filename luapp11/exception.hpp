@@ -65,6 +65,7 @@ class exception : public std::exception {
 
   friend class error;
   friend class var;
+  friend class stack_var;
   friend class val;
   friend class global;
   template <typename T>
@@ -118,6 +119,7 @@ class error {
   std::string stack_;
 
   friend class var;
+  friend class stack_var;
   friend class val;
   friend class global;
   template <typename T>
