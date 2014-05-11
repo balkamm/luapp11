@@ -20,5 +20,6 @@ class ptr {
 
   T* ptr_;
   friend class val;
+  friend class var;
 };
 }

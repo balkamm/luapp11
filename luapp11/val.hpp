@@ -103,7 +103,8 @@ class val {
       case type::lightuserdata:
         return a.ptr == b.ptr;
       default:
-        luapp11::exception("Bad Type.");
+        luapp11::exception("operator== Bad Type. " +
+                           std::to_string((int)a.type_));
     }
     return false;
   }
@@ -402,7 +403,9 @@ class val {
       //   break;
 
       default:
-        throw luapp11::exception("Bad Type.", L);
+        throw luapp11::exception(
+            std::string("val Constructor Bad Type. ") + lua_typename(L, (int)t),
+            L);
     }
   }
 
@@ -452,7 +455,8 @@ class val {
         lua_pushlightuserdata(L, ptr);
         break;
       default:
-        throw luapp11::exception("Bad Type.", L);
+        throw luapp11::exception(
+            std::string("push Bad Type ") + lua_typename(L, (int)type_), L);
     }
   }
 

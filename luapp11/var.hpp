@@ -251,10 +251,11 @@ class var {
   struct do_create<T, typename std::enable_if<
                           std::is_base_of<userdata<T>, T>::value>::type> {
     template <typename... TArgs>
-    static void create(const var& v, TArgs... args) {
+    static void* create(const var& v, TArgs... args) {
       auto ptr = lua_newuserdata(v.L, sizeof(T));
       new (ptr) T(args...);
       v.setup_metatable<T>();
+      return ptr;
     }
   };
 
@@ -262,9 +263,9 @@ class var {
   ptr<T> create(TArgs... args) {
     internal::stack_guard g(L);
     push_parent_key();
-    do_create<T>::create(*this, std::forward<TArgs>(args)...);
+    auto p = do_create<T>::create(*this, std::forward<TArgs>(args)...);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
-    return get<ptr<T>>();
+    return ptr<T>((T*)p);
   }
 
  private:
