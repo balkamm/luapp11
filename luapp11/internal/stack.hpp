@@ -1,7 +1,32 @@
 #pragma once
 
+#include <type_traits>
+
 namespace luapp11 {
+template <typename T>
+class userdata;
 namespace internal {
+
+template <typename T, class Enable = void>
+struct do_create {};
+
+template <typename T>
+struct do_create<
+    T, typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
+  template <typename... TArgs>
+  static void* create(lua_State* L, TArgs... args) {
+    auto ptr = lua_newuserdata(L, sizeof(T));
+    new (ptr) T(args...);
+    internal::type_registry::register_type<T>(L);
+    lua_setmetatable(L, -2);
+    return ptr;
+  }
+};
+
+template <typename T, typename... TArgs>
+void* create(lua_State* L, TArgs... args) {
+  return do_create<T>::create(L, std::forward<TArgs>(args)...);
+}
 
 template <typename T, class Enable = void>
 struct popper {
@@ -19,9 +44,7 @@ struct stack_popper {
 
   template <typename T>
   T get(lua_State* L) {
-    auto ret = popper<T>::get(L, idx);
-    idx++;
-    return ret;
+    return popper<T>::get(L, idx++);
   }
 
  private:
@@ -142,6 +165,12 @@ struct pusher<T, typename std::enable_if<std::is_same<T, val>::value>::type> {
   static void push(lua_State* L, const T& v) { v.push(L); }
 };
 
+template <typename T>
+struct pusher<T, typename std::enable_if<
+                     std::is_base_of<userdata<T>, val>::value>::type> {
+  static void push(lua_State* L, const T& v) { do_create<T>::create(v); }
+};
+
 template <typename TRet, typename... TArgs>
 struct pusher<std::function<TRet(TArgs...)>, std::enable_if<true>::type> {
   typedef std::function<TRet(TArgs...)> f_type;
@@ -156,8 +185,7 @@ struct pusher<std::function<TRet(TArgs...)>, std::enable_if<true>::type> {
     auto func = *(f_type*)ptr;
     stack_popper p(-nargs);
     try {
-      TRet ret = func(p.get<TArgs>(L)...);
-      pusher<TRet>::push(L, ret);
+      pusher<TRet>::push(L, func(p.get<TArgs>(L)...));
     } catch (std::exception e) {
       pusher<const char*>::push(L, e.what());
       lua_error(L);
@@ -217,6 +245,16 @@ struct pusher<TRet (*)(TArgs...), std::enable_if<true>::type> {
     lua_pushcclosure(L, &call, 1);
   }
 };
+
+template <typename TRet, typename TClass, typename... TArgs>
+struct pusher<TRet (TClass::*)(TArgs...), std::enable_if<true>::type> {
+  using f_type = TRet (TClass::*)(TArgs...);
+  using wrapped_type = std::function<TRet(TClass&, TArgs...)>;
+  static void push(lua_State* L, f_type func) {
+    pusher<wrapped_type>::push(L, wrapped_type(func));
+  }
+};
+
 template <typename TFrom, typename TTo>
 struct pusher<std::map<TFrom, TTo>, std::enable_if<true>::type> {
   static void push(lua_State* L, const std::map<TFrom, TTo>& map) {
@@ -306,8 +344,15 @@ struct pusher<std::unordered_set<T>, std::enable_if<true>::type> {
 };
 
 template <typename T>
-void push_func(T func) {
-  pusher<T>::push(func);
+struct pusher<
+    T, typename std::enable_if<std::is_base_of<userdata<T>, T>::value>::type> {
+  static void push(lua_State* L, const T& v) { create<T>(L, v); }
+  static void push(lua_State* L, T&& v) { create<T>(L, std::forward<T>(v)); }
+};
+
+template <typename T>
+void push(lua_State* L, T func) {
+  pusher<T>::push(L, func);
 }
 }
 }

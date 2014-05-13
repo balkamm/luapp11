@@ -243,27 +243,11 @@ class var {
     return error();
   }
 
-  template <typename T, class Enable = void>
-  struct do_create {};
-
-  template <typename T>
-  struct do_create<T, typename std::enable_if<
-                          std::is_base_of<userdata<T>, T>::value>::type> {
-    template <typename... TArgs>
-    static void* create(const var& v, TArgs... args) {
-      auto ptr = lua_newuserdata(v.L, sizeof(T));
-      new (ptr) T(args...);
-      internal::type_registry::register_type<T>(v.L, &userdata<T>::init_func);
-      lua_setmetatable(v.L, -2);
-      return ptr;
-    }
-  };
-
   template <typename T, typename... TArgs>
   ptr<T> create(TArgs... args) {
     internal::stack_guard g(L);
     push_parent_key();
-    auto p = do_create<T>::create(*this, std::forward<TArgs>(args)...);
+    auto p = internal::create<T>(L, std::forward<TArgs>(args)...);
     lua_settable(L, lineage_.size() == 1 ? virtual_index_ : -3);
     return ptr<T>((T*)p);
   }

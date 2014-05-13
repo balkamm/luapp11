@@ -12,6 +12,8 @@ class userdata {
  public:
   virtual ~userdata() = default;
 
+  static void init_func(lua_State* L) { register_add<TDerived>::reg(L); }
+
  protected:
   userdata() : type_hash_code_{typeid(TDerived).hash_code()} {
     // v.setup_metatable<TDerived>(&userdata::init_func);
@@ -21,35 +23,6 @@ class userdata {
   void export_method(std::string& method_name) {}
 
  private:
-  static void init_func(lua_State* L) {
-    register_add<TDerived>::reg(L);
-    // registrar<decltype((val(*)(val, val))&TDerived::operator-)>::reg(L,
-    // "__sub");
-    // registrar<decltype((val(*)(val, val))&TDerived::operator*)>::reg(L,
-    // "__mul");
-    // registrar<decltype((val(*)(val, val))&TDerived::operator/)>::reg(L,
-    // "__div");
-    // registrar<decltype((val(*)(val, val))&TDerived::operator%)>::reg(L,
-    // "__mod");
-    // registrar<decltype((val(*)(val, val)) & TDerived::pow)>::reg(L, "__pow");
-    // registrar<decltype(&TDerived::operator-)>::reg(L, "__unm");
-    // registrar<decltype((val(*)(val, val)) & TDerived::concat)>::reg(
-    //     L, "__concat");
-    // registrar<decltype(&TDerived::length)>::reg(L, "__len");
-    // registrar<decltype((bool(*)(val, val))&TDerived::operator==)>::reg(L,
-    // "__eq");
-    // registrar<decltype((bool(*)(val, val))&TDerived::operator<)>::reg(L,
-    // "__lt");
-    // registrar<decltype((bool(*)(val, val))&TDerived::operator<=)>::reg(L,
-    // "__le");
-    // registrar<decltype((val(TDerived::*)(val))&TDerived::operator[])>::reg(L,
-    // "__index");
-    // registrar<decltype((val(TDerived::*)(val)) & TDerived::newindex)>::reg(
-    //     L, "__newindex");
-    // // registrar::reg(L, "__call", dispatch());
-    // registrar<decltype(&userdata::destroy)>::reg(L, "__gc");
-  }
-
   static int call(lua_State* L) {}
 
   static int destroy(lua_State* L) {
@@ -70,30 +43,31 @@ class userdata {
     return (TDerived*)ptr;
   }
 
-  template <typename T, class Enable = void>
-  struct registrar {
-    // static void reg(const var& v, std::string name) {}
-  };
+  // template <typename T, class Enable = void>
+  // struct registrar {
+  //   // static void reg(const var& v, std::string name) {}
+  // };
 
-  template <typename T>
-  struct registrar<T, typename std::enable_if<
-                          std::is_member_function_pointer<T>::value>::type> {
-    // static void reg(const var & v, std::string name) {
-    //   T func;
-    //   v.register_meta_method(name, std::bind(func, t));
-    // }
-  };
+  // template <typename T>
+  // struct registrar<T, typename std::enable_if<
+  //                         std::is_member_function_pointer<T>::value>::type> {
+  //   // static void reg(const var & v, std::string name) {
+  //   //   T func;
+  //   //   v.register_meta_method(name, std::bind(func, t));
+  //   // }
+  // };
 
-  template <typename T>
-  struct registrar<T,
-                   typename std::enable_if<std::is_function<T>::value>::type> {
-    void reg(lua_State* L, std::string name) {
-      T func;
-      lua_pushstring(L, name.c_str());
-      internal::push_func(func);
-      lua_settable(L, -3);
-    }
-  };
+  // template <typename T>
+  // struct registrar<T,
+  //                  typename std::enable_if<std::is_function<T>::value>::type>
+  //                  {
+  //   void reg(lua_State* L, std::string name) {
+  //     T func;
+  //     lua_pushstring(L, name.c_str());
+  //     internal::push(func);
+  //     lua_settable(L, -3);
+  //   }
+  // };
 
   template <typename T, class Enable = void>
   struct register_add {
@@ -101,11 +75,12 @@ class userdata {
   };
 
   template <typename T>
-  struct register_add<T, typename std::enable_if<std::is_function<
-                             decltype(&T::operator+)>::value>::type> {
+  struct register_add<T,
+                      typename std::enable_if<std::is_member_function_pointer<
+                          decltype(&T::operator+)>::value>::type> {
     static void reg(lua_State* L) {
       lua_pushstring(L, "__add");
-      internal::push_func(&T::operator+);
+      internal::push(L, &T::operator+);
       lua_settable(L, -3);
     }
   };

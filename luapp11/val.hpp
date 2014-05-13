@@ -360,6 +360,10 @@ class val {
     static T* get(const val& v) { return (T*)v.ptr; }
   };
   template <typename T>
+  struct get_lightuserdata<T&> {
+    static T& get(const val& v) { return *(T*)v.ptr; }
+  };
+  template <typename T>
   struct get_lightuserdata<ptr<T>> {
     static ptr<T> get(const val& v) { return luapp11::ptr<T>((T*)v.ptr); }
   };
@@ -377,6 +381,20 @@ class val {
   struct get_userdata<ptr<T>> {
     static ptr<T> get(const val& v) {
       return luapp11::ptr<T>(internal::type_registry::cast<T>(v.ptr));
+    }
+  };
+
+  template <typename T>
+  struct get_userdata<T*> {
+    static T* get(const val& v) {
+      return internal::type_registry::cast<T>(v.ptr);
+    }
+  };
+
+  template <typename T>
+  struct get_userdata<T&> {
+    static T& get(const val& v) {
+      return *internal::type_registry::cast<T>(v.ptr);
     }
   };
 

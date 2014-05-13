@@ -38,11 +38,18 @@ class type_registry {
     if (!instance().known_types_.count(hash)) {
       stack_guard g(L, true);
       luaL_newmetatable(L, name.c_str());
-      callback(L);
+      if (callback) {
+        callback(L);
+      }
       instance().known_types_[hash] = name;
     } else {
       luaL_getmetatable(L, name.c_str());
     }
+  }
+
+  template <typename T>
+  static void register_type(lua_State* L) {
+    type_registerer<T>::reg(L);
   }
 
  private:
@@ -77,6 +84,22 @@ class type_registry {
   struct caster<T, typename std::enable_if<
                        std::is_function<decltype(&T::cast)>::value>::type> {
     static T* cast(void* ptr) { return T::cast(ptr); }
+  };
+
+  template <typename T, typename Enable = void>
+  struct type_registerer {
+    static void reg(lua_State* L) {
+      std::cout << "no init_func " << std::endl;
+      type_registry::register_type<T>(L, std::function<void(lua_State*)>());
+    }
+  };
+
+  template <typename T>
+  struct type_registerer<T, typename std::enable_if<std::is_function<
+                                decltype(T::init_func)>::value>::type> {
+    static void reg(lua_State* L) {
+      type_registry::register_type<T>(L, &T::init_func);
+    }
   };
 
   static type_registry& instance() {

@@ -5,17 +5,15 @@ using namespace luapp11;
 
 class MyInt : public userdata<MyInt> {
  public:
+  MyInt(int i) : userdata<MyInt>(), myInt_{i} {}
+  MyInt(const MyInt& other) : myInt_{other.myInt_} {}
+  MyInt(MyInt&& other) : myInt_{std::move(other.myInt_)} {}
   int get_int() const { return myInt_; }
 
- private:
-  MyInt(int i) : userdata<MyInt>(), myInt_{i} {}
+  int operator+(const MyInt& b) { return myInt_ + b.myInt_; }
 
-  friend MyInt operator+(const MyInt& a, const MyInt& b) {
-    std::cout << "Special Add..." << std::endl;
-    return a.myInt_ + b.myInt_;
-  }
+ private:
   int myInt_;
-  friend class var;
 };
 
 TEST_CASE("userdata_test/create", "userdata create test") {

@@ -220,6 +220,7 @@ TEST_CASE("var_test/invoke", "invoke test") {
   auto result = func.invoke<int>(7);
   CHECK(result.success());
   CHECK(result.value() == 12);
+
   CHECK_THROWS(global["foo"].invoke<int>());
 
   auto func2 = global["func2"];
